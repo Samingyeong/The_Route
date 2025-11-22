@@ -19,10 +19,10 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private Animator animator;
     
     [Header("=== 1단계: 거리 기반 상태 전환 ===")]
-    [SerializeField] private float idleDistance = 15f;      // 15m 이상이면 Idle
-    [SerializeField] private float walkDistance = 5f;       // 5m 이하면 Walk 시작
-    [SerializeField] private float runDistance = 5f;        // 5m 이하면 Run
-    [SerializeField] private float attackDistance = 1.5f;   // 1.5m 이하면 Attack
+    [SerializeField] private float idleDistance = 25f;      // 25m 이상이면 Idle
+    [SerializeField] private float walkDistance = 12f;      // 12m 이하면 Walk 시작
+    [SerializeField] private float runDistance = 8f;        // 8m 이하면 Run
+    [SerializeField] private float attackDistance = 2.5f;   // 2.5m 이하면 Attack
     
     [Header("속도 설정")]
     [SerializeField] private float walkSpeed = 2.5f;       // 걷기 속도 (2~3m/s)
@@ -198,21 +198,28 @@ public class ZombieAI : MonoBehaviour
             return ZombieState.Attack;
         }
         
-        // 거리 기반 상태 결정
+        // 거리 기반 상태 결정 (가까운 순서대로 체크)
+        // WalkDistance와 RunDistance를 명확히 구분하여 Walk 상태가 작동하도록
+        
         if (distanceToPlayer <= attackDistance)
         {
+            // 공격 거리 이하
             return ZombieState.Attack;
         }
         else if (distanceToPlayer <= runDistance)
         {
+            // 뛰기 거리 이하 (2.5m 초과 ~ 8m 이하)
             return ZombieState.Run;
         }
         else if (distanceToPlayer <= walkDistance)
         {
+            // 걷기 거리 이하 (8m 초과 ~ 12m 이하)
+            // Walk 상태가 확실히 작동하도록
             return ZombieState.Walk;
         }
         else if (distanceToPlayer > idleDistance)
         {
+            // 멀리 있을 때 (25m 초과)
             // === 3단계: 멀리 있으면 Search 상태 가능 ===
             if (enableRandomness && Random.value < 0.1f)
             {
@@ -222,6 +229,7 @@ public class ZombieAI : MonoBehaviour
         }
         else
         {
+            // 중간 거리 (12m 초과 ~ 25m 이하)
             return ZombieState.Idle;
         }
     }
@@ -398,7 +406,17 @@ public class ZombieAI : MonoBehaviour
     
     void UpdateAnimations()
     {
-        if (animator == null) return;
+        if (animator == null)
+        {
+            Debug.LogWarning("ZombieAI: Animator가 null입니다!");
+            return;
+        }
+        
+        if (!animator.enabled)
+        {
+            Debug.LogWarning("ZombieAI: Animator가 비활성화되어 있습니다!");
+            return;
+        }
         
         // 모든 애니메이션 파라미터 초기화
         animator.SetBool(animParamIsWalking, false);
@@ -408,35 +426,46 @@ public class ZombieAI : MonoBehaviour
         animator.SetBool(animParamIsStumbling, false);
         
         // 속도 파라미터
-        float speed = navAgent.velocity.magnitude;
+        float speed = navAgent != null ? navAgent.velocity.magnitude : 0f;
         animator.SetFloat(animParamSpeed, speed);
         
         // 상태별 애니메이션 설정
         switch (currentState)
         {
             case ZombieState.Idle:
-                // Idle은 기본 상태
+                // Idle은 기본 상태 - 모든 Bool 파라미터는 false로 유지
                 break;
                 
             case ZombieState.Walk:
+                // 걷기 상태: IsWalking = true
                 animator.SetBool(animParamIsWalking, true);
                 break;
                 
             case ZombieState.Run:
+                // 뛰기 상태: IsRunning = true
                 animator.SetBool(animParamIsRunning, true);
                 break;
                 
             case ZombieState.Attack:
+                // 공격 상태: IsAttacking = true
                 animator.SetBool(animParamIsAttacking, true);
                 break;
                 
             case ZombieState.Search:
+                // 탐색 상태: IsSearching = true
                 animator.SetBool(animParamIsSearching, true);
                 break;
                 
             case ZombieState.Stumble:
+                // 우당탕 상태: IsStumbling = true
                 animator.SetBool(animParamIsStumbling, true);
                 break;
+        }
+        
+        // 디버그: 현재 상태 로그 (10초마다 - 로그 줄이기)
+        if (Time.frameCount % 600 == 0)
+        {
+            Debug.Log($"ZombieAI 상태: {currentState}, 거리: {distanceToPlayer:F2}m (Walk:{walkDistance}m, Run:{runDistance}m), IsWalking: {animator.GetBool(animParamIsWalking)}, IsRunning: {animator.GetBool(animParamIsRunning)}");
         }
     }
     
