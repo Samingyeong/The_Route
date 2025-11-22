@@ -52,7 +52,7 @@ public class PlayerController : MonoBehaviour
         float horizontal = Input.GetAxis("Horizontal"); // A, D
         float vertical = Input.GetAxis("Vertical");       // W, S
         
-        // Shift로 달리기
+        // Left Shift로 달리기 (누르고 있으면 runSpeed, 아니면 moveSpeed)
         isRunning = Input.GetKey(KeyCode.LeftShift);
         float currentSpeed = isRunning ? runSpeed : moveSpeed;
         
@@ -95,9 +95,10 @@ public class PlayerController : MonoBehaviour
     
     void HandleJump()
     {
-        // Space로 점프
+        // Space 바로 점프 (지면에 있을 때만)
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
+            // 점프 속도 계산 (물리 공식 사용)
             velocity.y = Mathf.Sqrt(jumpForce * -2f * gravity);
         }
     }
