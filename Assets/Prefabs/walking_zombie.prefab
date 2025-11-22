@@ -1555,6 +1555,8 @@ GameObject:
   - component: {fileID: 7458470216734227668}
   - component: {fileID: 653758167000062307}
   - component: {fileID: 4043560114919090123}
+  - component: {fileID: 4794189566313487970}
+  - component: {fileID: 2680706319161550057}
   m_Layer: 0
   m_Name: walking_zombie
   m_TagString: Untagged
@@ -1572,7 +1574,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.0012483001, y: 0, z: 0.0131524205}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5263660778240753539}
@@ -1645,7 +1647,62 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BodyMaterials:
   - {fileID: 2100000, guid: 4cde5aac7288f054380fe768f78a0311, type: 2}
-  eyesGlow: 0
+  eyesGlow: 1
+--- !u!114 &4794189566313487970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4676313390984160242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerTarget: {fileID: 0}
+  navAgent: {fileID: 0}
+  animator: {fileID: 0}
+  idleDistance: 15
+  walkDistance: 5
+  runDistance: 5
+  attackDistance: 1.5
+  walkSpeed: 2.5
+  runSpeed: 4.5
+  enableRandomness: 0
+  pauseProbability: 0.3
+  pauseDuration: 1.5
+  speedBoostProbability: 0.2
+  speedBoostDuration: 0.5
+  speedBoostMultiplier: 1.5
+  animParamSpeed: Speed
+  animParamIsWalking: IsWalking
+  animParamIsRunning: IsRunning
+  animParamIsAttacking: IsAttacking
+  animParamIsSearching: IsSearching
+  animParamIsStumbling: IsStumbling
+--- !u!195 &2680706319161550057
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4676313390984160242}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &4824192632041875340
 GameObject:
   m_ObjectHideFlags: 0
