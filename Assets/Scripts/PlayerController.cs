@@ -5,7 +5,7 @@ public class PlayerController : MonoBehaviour
     [Header("이동 설정")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float runSpeed = 8f;
-    [SerializeField] private float jumpForce = 5f;
+    [SerializeField] private float jumpForce = 3f; // 점프력 조정 (5 -> 3)
     
     [Header("컴포넌트")]
     [SerializeField] private CharacterController characterController;
