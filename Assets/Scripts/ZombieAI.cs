@@ -182,20 +182,20 @@ public class ZombieAI : MonoBehaviour
         navAgent.updatePosition = false;
         navAgent.updateRotation = false;
         
+        // 초기 Y 위치 저장 (땅에 박히는 문제 방지)
+        initialYPosition = transform.position.y;
+        
         // NavMeshAgent의 초기 위치를 현재 Transform 위치로 설정 (원래 설치한 위치 유지)
         // Y축은 원래 위치 그대로 유지 (하늘로 올라가는 문제 방지)
         if (navAgent.isOnNavMesh)
         {
-            // 원래 Y 위치 저장
-            float originalY = transform.position.y;
-            
             // NavMesh 위의 XZ 위치만 찾기 (Y는 원래 위치 유지)
             UnityEngine.AI.NavMeshHit hit;
             Vector3 checkPosition = transform.position;
             if (UnityEngine.AI.NavMesh.SamplePosition(checkPosition, out hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
             {
                 // XZ 위치는 NavMesh 위로, Y는 원래 위치 유지
-                Vector3 navMeshPosition = new Vector3(hit.position.x, originalY, hit.position.z);
+                Vector3 navMeshPosition = new Vector3(hit.position.x, initialYPosition, hit.position.z);
                 transform.position = navMeshPosition;
                 navAgent.Warp(navMeshPosition);
                 navAgent.nextPosition = navMeshPosition;
@@ -734,8 +734,8 @@ public class ZombieAI : MonoBehaviour
             return;
         }
         
-        // 현재 Y 위치 저장 (땅 아래로 들어가는 것을 방지)
-        float currentY = transform.position.y;
+        // 초기 Y 위치 사용 (땅 아래로 들어가는 것을 방지)
+        float initialY = transform.position.y;
         
         // NavMeshAgent를 사용하는 상태 (Walk, Run)
         if (navAgent.isOnNavMesh && (currentState == ZombieState.Walk || currentState == ZombieState.Run))
@@ -743,10 +743,10 @@ public class ZombieAI : MonoBehaviour
             // NavMeshAgent의 다음 위치 가져오기 (XZ만)
             Vector3 nextPosition = navAgent.nextPosition;
             
-            // Y 위치는 원래 위치 유지 (하늘로 올라가는 문제 방지)
-            nextPosition.y = currentY;
+            // Y 위치는 초기 위치 유지 (하늘로 올라가거나 땅에 박히는 문제 방지)
+            nextPosition.y = initialY;
             
-            // Transform 위치를 NavMeshAgent의 위치로 설정 (Y는 원래 위치 유지)
+            // Transform 위치를 NavMeshAgent의 위치로 설정 (Y는 초기 위치 유지)
             transform.position = nextPosition;
             
             // 회전은 NavMeshAgent의 회전을 사용하거나 루트 모션 회전 사용
@@ -761,24 +761,33 @@ public class ZombieAI : MonoBehaviour
                 }
             }
         }
+        else if (currentState == ZombieState.Idle)
+        {
+            // Idle 상태에서는 위치 변경하지 않음 (설치한 위치 유지)
+            // Y 위치를 명시적으로 유지하여 땅에 박히는 문제 방지
+            Vector3 currentPos = transform.position;
+            currentPos.y = initialY;
+            transform.position = currentPos;
+            
+            // 회전만 적용 (Idle 상태에서도 회전은 가능)
+            if (animator.deltaRotation != Quaternion.identity)
+            {
+                transform.rotation = animator.rootRotation;
+            }
+        }
         else
         {
-            // NavMeshAgent를 사용하지 않는 상태 (Idle, Attack 등)
-            // Idle 상태에서는 위치 변경하지 않음 (설치한 위치 유지)
-            if (currentState != ZombieState.Idle)
-            {
-                // 루트 모션 적용 (Attack 등) - XZ만 이동, Y는 유지
-                Vector3 rootMotionDelta = animator.deltaPosition;
-                rootMotionDelta.y = 0; // Y축 이동 무시
-                
-                Vector3 newPosition = transform.position + rootMotionDelta;
-                newPosition.y = currentY; // Y 위치는 원래 위치 유지
-                
-                transform.position = newPosition;
-            }
-            // Idle 상태에서는 위치 변경하지 않음 (transform.position 유지)
+            // NavMeshAgent를 사용하지 않는 다른 상태 (Attack 등)
+            // 루트 모션 적용 - XZ만 이동, Y는 유지
+            Vector3 rootMotionDelta = animator.deltaPosition;
+            rootMotionDelta.y = 0; // Y축 이동 무시
             
-            // 회전 적용 (Idle 상태에서도 회전은 가능)
+            Vector3 newPosition = transform.position + rootMotionDelta;
+            newPosition.y = initialY; // Y 위치는 초기 위치 유지
+            
+            transform.position = newPosition;
+            
+            // 회전 적용
             if (animator.deltaRotation != Quaternion.identity)
             {
                 transform.rotation = animator.rootRotation;

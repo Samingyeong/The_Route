@@ -2326,7 +2326,7 @@ GameObject:
   - component: {fileID: 1634368653439468186}
   - component: {fileID: 7564738224050226065}
   m_Layer: 0
-  m_Name: zombie 1_2
+  m_Name: zombie
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2359,7 +2359,7 @@ Animator:
   m_GameObject: {fileID: 6670874799854986843}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: e2c1c24aec0aaa94eb4cb7a2aae271a0, type: 3}
-  m_Controller: {fileID: 9100000, guid: a40e9251e865584489aefa04c7d877a6, type: 2}
+  m_Controller: {fileID: 9100000, guid: aac5ee091739c1948839bbbf67d66ae3, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -2465,12 +2465,22 @@ MonoBehaviour:
   speedBoostProbability: 0.2
   speedBoostDuration: 0.5
   speedBoostMultiplier: 1.5
+  searchProbability: 0.4
+  searchDuration: 3
+  searchRotationSpeed: 60
+  searchDetectionRange: 15
   animParamSpeed: Speed
   animParamIsWalking: IsWalking
   animParamIsRunning: IsRunning
   animParamIsAttacking: IsAttacking
-  animParamIsSearching: IsSearching
-  animParamIsStumbling: IsStumbling
+  animParamAttackType: AttackType
+  animParamIdleType: IdleType
+  useRandomIdleTypes: 1
+  idleChangeInterval: 5
+  availableIdleTypes: 000000000100000002000000
+  useAttackTypeParameter: 1
+  useRandomAttacks: 1
+  availableAttackTypes: 0000000001000000020000000300000004000000
 --- !u!1 &6708859479475276782
 GameObject:
   m_ObjectHideFlags: 0
