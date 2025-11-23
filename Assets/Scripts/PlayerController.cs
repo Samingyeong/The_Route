@@ -5,10 +5,11 @@ public class PlayerController : MonoBehaviour
     [Header("이동 설정")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float runSpeed = 8f;
-    [SerializeField] private float jumpForce = 3f; // 점프력 조정 (5 -> 3)
+    [SerializeField] private float jumpForce = 3f; 
     
     [Header("컴포넌트")]
     [SerializeField] private CharacterController characterController;
+    [SerializeField] private Animator animator; 
     
     private Vector3 velocity;
     private bool isGrounded;
@@ -17,13 +18,7 @@ public class PlayerController : MonoBehaviour
     
     void Start()
     {
-        // CharacterController 자동 찾기
-        if (characterController == null)
-        {
-            characterController = GetComponent<CharacterController>();
-        }
-        
-        // CharacterController가 없으면 추가
+        if (characterController == null) characterController = GetComponent<CharacterController>();
         if (characterController == null)
         {
             characterController = gameObject.AddComponent<CharacterController>();
@@ -31,6 +26,7 @@ public class PlayerController : MonoBehaviour
             characterController.radius = 0.5f;
             characterController.center = new Vector3(0, 1, 0);
         }
+        if (animator == null) animator = GetComponent<Animator>(); 
     }
     
     void Update()
@@ -45,39 +41,31 @@ public class PlayerController : MonoBehaviour
         isGrounded = characterController.isGrounded;
         if (isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f; // 작은 값으로 지면에 붙이기
+            velocity.y = -2f; 
         }
         
-        // WASD 입력 받기
-        float horizontal = Input.GetAxis("Horizontal"); // A, D
-        float vertical = Input.GetAxis("Vertical");       // W, S
+        // WASD 입력
+        float horizontal = Input.GetAxis("Horizontal"); 
+        float vertical = Input.GetAxis("Vertical");     
         
-        // Left Shift로 달리기 (누르고 있으면 runSpeed, 아니면 moveSpeed)
+        // Left Shift로 달리기 상태 확인
         isRunning = Input.GetKey(KeyCode.LeftShift);
         float currentSpeed = isRunning ? runSpeed : moveSpeed;
         
-        // 이동 방향 계산 (카메라 기준으로 이동)
+        // 이동 방향 계산
         Camera mainCam = Camera.main;
         Vector3 moveDirection = Vector3.zero;
         
         if (mainCam != null)
         {
-            // 카메라의 앞방향과 오른쪽 방향 가져오기 (Y축 제외)
             Vector3 forward = mainCam.transform.forward;
             Vector3 right = mainCam.transform.right;
-            
-            forward.y = 0f;
-            right.y = 0f;
-            
-            forward.Normalize();
-            right.Normalize();
-            
-            // 카메라 기준으로 이동 방향 계산
+            forward.y = 0f; right.y = 0f;
+            forward.Normalize(); right.Normalize();
             moveDirection = forward * vertical + right * horizontal;
         }
         else
         {
-            // 카메라가 없으면 Player 회전 기준
             moveDirection = transform.forward * vertical + transform.right * horizontal;
         }
         
@@ -87,6 +75,16 @@ public class PlayerController : MonoBehaviour
             moveDirection.Normalize();
             characterController.Move(moveDirection * currentSpeed * Time.deltaTime);
         }
+
+        // 애니메이션 처리 로직 (걷기 & 달리기)
+        if (animator != null)
+        {
+            
+            bool isMoving = moveDirection.magnitude > 0.1f; 
+            
+            animator.SetBool("IsWalking", isMoving);
+            animator.SetBool("IsRunning", isMoving && isRunning);
+        }
         
         // 중력 적용
         velocity.y += gravity * Time.deltaTime;
@@ -95,13 +93,9 @@ public class PlayerController : MonoBehaviour
     
     void HandleJump()
     {
-        // Space 바로 점프 (지면에 있을 때만)
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
-            // 점프 속도 계산 (물리 공식 사용)
             velocity.y = Mathf.Sqrt(jumpForce * -2f * gravity);
         }
     }
-    
 }
-
