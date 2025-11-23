@@ -29,23 +29,73 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private float runSpeed = 4.5f;         // 뛰기 속도 (4~5m/s)
     
     [Header("=== 2단계: 랜덤성 설정 ===")]
-    [SerializeField] private bool enableRandomness = false;
+    [SerializeField] private bool enableRandomness = true;
     [SerializeField] [Range(0f, 1f)] private float pauseProbability = 0.3f;  // 멈춤 확률 30%
     [SerializeField] private float pauseDuration = 1.5f;    // 멈춤 시간 1~2초
     [SerializeField] private float speedBoostProbability = 0.2f;  // 속도 증가 확률
     [SerializeField] private float speedBoostDuration = 0.5f;     // 속도 증가 지속 시간
     [SerializeField] private float speedBoostMultiplier = 1.5f;   // 속도 증가 배율
     
+    [Header("=== 탐색(Search) 설정 ===")]
+    [SerializeField] [Range(0f, 1f)] private float searchProbability = 0.4f;  // 최장거리에서 탐색 확률 40%
+    [SerializeField] private float searchDuration = 3f;      // 탐색 지속 시간 (초)
+    [SerializeField] private float searchRotationSpeed = 60f; // 탐색 중 회전 속도 (도/초)
+    [SerializeField] private float searchDetectionRange = 15f; // 탐색 중 플레이어 감지 범위
+    
     [Header("=== 3단계: 애니메이션 파라미터 ===")]
     [SerializeField] private string animParamSpeed = "Speed";
     [SerializeField] private string animParamIsWalking = "IsWalking";
     [SerializeField] private string animParamIsRunning = "IsRunning";
     [SerializeField] private string animParamIsAttacking = "IsAttacking";
-    [SerializeField] private string animParamIsSearching = "IsSearching";
-    [SerializeField] private string animParamIsStumbling = "IsStumbling";
+    [SerializeField] private string animParamAttackType = "AttackType";
+    [SerializeField] private string animParamIdleType = "IdleType";
+    // IsSearching과 IsStumbling은 제거됨:
+    // - Search는 IdleType.Search로 처리됨
+    // - Stumble은 현재 사용하지 않음
+    
+    [Header("=== 4단계: Idle 타입 랜덤 설정 ===")]
+    [SerializeField] private bool useRandomIdleTypes = true;
+    [SerializeField] [Range(1f, 30f)] private float idleChangeInterval = 5f; // Idle 타입 변경 간격 (초)
+    [Tooltip("Idle 상태에서 랜덤으로 재생할 Idle 타입들. 원하는 것만 선택하세요.")]
+    [SerializeField] private IdleType[] availableIdleTypes = { 
+        IdleType.Idle, 
+        IdleType.Agonizing, 
+        IdleType.Search 
+        // 필요시 Bite, ReactionHit, StandUp, Stumbling 등 추가 가능
+    };
+    
+    [Header("=== 5단계: 공격 타입 랜덤 설정 ===")]
+    [SerializeField] private bool useAttackTypeParameter = true; // 단일 Controller 사용 시 true
+    [SerializeField] private bool useRandomAttacks = true;
+    [SerializeField] private AttackType[] availableAttackTypes = { AttackType.Attack, AttackType.Kicking, AttackType.Punching, AttackType.Headbutt, AttackType.Scratch };
+    
+    // Idle 타입 열거형 (Idle 상태에서 랜덤 선택)
+    // 필요에 따라 더 추가 가능
+    public enum IdleType
+    {
+        Idle = 0,        // idle.fbx
+        Agonizing = 1,   // agonizing.fbx
+        Search = 2,      // turn.fbx (탐색)
+        Bite = 3,        // bite.fbx (추가 예정)
+        ReactionHit = 4, // reaction hit.fbx
+        StandUp = 5,     // stand up.fbx
+        Stumbling = 6   // stumbling.fbx
+    }
+    
+    // 공격 타입 열거형 (AnyState에서 랜덤 선택)
+    public enum AttackType
+    {
+        Attack = 0,      // attack.fbx
+        Kicking = 1,    // kicking.fbx
+        Punching = 2,   // punching.fbx
+        Headbutt = 3,   // headbutt.fbx
+        Scratch = 4     // scratch.fbx
+    }
     
     // 내부 변수
     private ZombieState currentState = ZombieState.Idle;
+    private AttackType currentAttackType = AttackType.Attack;
+    private IdleType currentIdleType = IdleType.Idle;
     private float distanceToPlayer;
     private float lastPlayerMovementTime;
     private Vector3 lastPlayerPosition;
@@ -54,6 +104,19 @@ public class ZombieAI : MonoBehaviour
     private bool isSpeedBoosted = false;
     private float speedBoostTimer = 0f;
     private float originalSpeed;
+    
+    // Search 관련 변수
+    private float searchTimer = 0f;
+    private bool isSearching = false;
+    private Vector3 searchStartPosition;
+    private float searchStartRotation;
+    
+    // Attack 관련 변수
+    private float lastAttackTime = 0f;
+    private float attackCooldown = 0.5f; // 공격 쿨다운 (초)
+    
+    // Idle 타입 변경 관련 변수
+    private float lastIdleTypeChangeTime = 0f;
     
     void Start()
     {
@@ -118,6 +181,41 @@ public class ZombieAI : MonoBehaviour
         // updatePosition과 updateRotation을 false로 설정하여 OnAnimatorMove에서 수동 제어
         navAgent.updatePosition = false;
         navAgent.updateRotation = false;
+        
+        // NavMeshAgent의 초기 위치를 현재 Transform 위치로 설정 (원래 설치한 위치 유지)
+        // Y축은 원래 위치 그대로 유지 (하늘로 올라가는 문제 방지)
+        if (navAgent.isOnNavMesh)
+        {
+            // 원래 Y 위치 저장
+            float originalY = transform.position.y;
+            
+            // NavMesh 위의 XZ 위치만 찾기 (Y는 원래 위치 유지)
+            UnityEngine.AI.NavMeshHit hit;
+            Vector3 checkPosition = transform.position;
+            if (UnityEngine.AI.NavMesh.SamplePosition(checkPosition, out hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                // XZ 위치는 NavMesh 위로, Y는 원래 위치 유지
+                Vector3 navMeshPosition = new Vector3(hit.position.x, originalY, hit.position.z);
+                transform.position = navMeshPosition;
+                navAgent.Warp(navMeshPosition);
+                navAgent.nextPosition = navMeshPosition;
+            }
+            else
+            {
+                // NavMesh를 찾을 수 없으면 현재 위치 그대로 유지
+                navAgent.nextPosition = transform.position;
+                navAgent.Warp(transform.position);
+            }
+        }
+        
+        // 초기 Idle 타입 랜덤 선택 (각 좀비마다 다른 시드 사용)
+        if (useRandomIdleTypes && availableIdleTypes.Length > 0)
+        {
+            // 각 좀비마다 다른 랜덤 시드 사용 (같은 행동 방지)
+            int randomOffset = Random.Range(0, 1000);
+            currentIdleType = availableIdleTypes[(Random.Range(0, availableIdleTypes.Length) + randomOffset) % availableIdleTypes.Length];
+            lastIdleTypeChangeTime = Time.time + Random.Range(0f, idleChangeInterval * 0.5f); // 시작 시간도 랜덤
+        }
     }
     
     void Update()
@@ -158,8 +256,12 @@ public class ZombieAI : MonoBehaviour
         // NavMesh 위에 있는지 확인 (없어도 일단 거리 계산은 함)
         bool isOnNavMesh = navAgent.isOnNavMesh;
         
-        // 거리 계산
-        distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
+        // 거리 계산 (XZ 평면만, Y축 무시)
+        Vector3 zombiePos = transform.position;
+        Vector3 playerPos = playerTarget.position;
+        zombiePos.y = 0; // Y축 무시
+        playerPos.y = 0; // Y축 무시
+        distanceToPlayer = Vector3.Distance(zombiePos, playerPos);
         
         // Player 움직임 감지
         if (Vector3.Distance(playerTarget.position, lastPlayerPosition) > 0.1f)
@@ -185,13 +287,16 @@ public class ZombieAI : MonoBehaviour
     {
         // NavMeshAgent.updatePosition = false로 설정했으므로
         // NavMeshAgent의 nextPosition을 현재 Transform 위치로 동기화
+        // 단, Idle 상태일 때는 위치 변경하지 않음 (갑자기 나타나는 문제 방지)
         if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
         {
-            // NavMeshAgent가 Transform 위치를 따라가도록 설정
-            // 이렇게 하면 NavMeshAgent가 올바른 경로를 계산할 수 있음
-            if (Vector3.Distance(transform.position, navAgent.nextPosition) > navAgent.radius)
+            // Walk/Run 상태일 때만 동기화 (Idle 상태에서는 위치 고정)
+            if (currentState == ZombieState.Walk || currentState == ZombieState.Run)
             {
-                navAgent.nextPosition = transform.position;
+                if (Vector3.Distance(transform.position, navAgent.nextPosition) > navAgent.radius)
+                {
+                    navAgent.nextPosition = transform.position;
+                }
             }
         }
     }
@@ -212,18 +317,62 @@ public class ZombieAI : MonoBehaviour
     
     ZombieState DetermineState()
     {
-        // 공격 중이면 공격 상태 유지
-        if (currentState == ZombieState.Attack && distanceToPlayer <= attackDistance * 1.2f)
+        // 공격 중이면 공격 상태 유지 (쿨다운 체크)
+        if (currentState == ZombieState.Attack)
         {
-            return ZombieState.Attack;
+            // 공격 거리 내에 있고 쿨다운이 지나지 않았으면 공격 유지
+            if (distanceToPlayer <= attackDistance * 1.2f && Time.time - lastAttackTime < attackCooldown)
+            {
+                return ZombieState.Attack;
+            }
+            // 공격 완료 후 거리 체크
+        }
+        
+        // 탐색 중이면 탐색 상태 유지
+        if (currentState == ZombieState.Search && isSearching)
+        {
+            // 탐색 중 플레이어가 가까워지면 추적 시작
+            if (distanceToPlayer <= searchDetectionRange)
+            {
+                isSearching = false;
+                searchTimer = 0f;
+                // 거리에 따라 Walk 또는 Run으로 전환
+                if (distanceToPlayer <= runDistance)
+                {
+                    return ZombieState.Run;
+                }
+                else if (distanceToPlayer <= walkDistance)
+                {
+                    return ZombieState.Walk;
+                }
+            }
+            // 탐색 시간이 남아있으면 계속 탐색
+            if (searchTimer > 0f)
+            {
+                return ZombieState.Search;
+            }
+            // 탐색 완료
+            isSearching = false;
+            searchTimer = 0f;
         }
         
         // 거리 기반 상태 결정 (가까운 순서대로 체크)
-        // WalkDistance와 RunDistance를 명확히 구분하여 Walk 상태가 작동하도록
-        
         if (distanceToPlayer <= attackDistance)
         {
             // 공격 거리 이하
+            // 단일 Controller + AttackType 파라미터 사용 시에만 랜덤 공격 타입 선택
+            if (useAttackTypeParameter && useRandomAttacks && availableAttackTypes.Length > 0)
+            {
+                // 랜덤으로 공격 타입 선택
+                int randomIndex = Random.Range(0, availableAttackTypes.Length);
+                currentAttackType = availableAttackTypes[randomIndex];
+                Debug.Log($"ZombieAI: 공격 타입 랜덤 선택 - {currentAttackType} (인덱스: {randomIndex}, 사용 가능: {availableAttackTypes.Length}개)");
+            }
+            else
+            {
+                Debug.LogWarning($"ZombieAI: 공격 타입 랜덤 선택 실패 - useAttackTypeParameter: {useAttackTypeParameter}, useRandomAttacks: {useRandomAttacks}, availableAttackTypes.Length: {availableAttackTypes.Length}");
+            }
+            lastAttackTime = Time.time;
             return ZombieState.Attack;
         }
         else if (distanceToPlayer <= runDistance)
@@ -234,22 +383,17 @@ public class ZombieAI : MonoBehaviour
         else if (distanceToPlayer <= walkDistance)
         {
             // 걷기 거리 이하 (8m 초과 ~ 12m 이하)
-            // Walk 상태가 확실히 작동하도록
             return ZombieState.Walk;
         }
         else if (distanceToPlayer > idleDistance)
         {
-            // 멀리 있을 때 (25m 초과)
-            // === 3단계: 멀리 있으면 Search 상태 가능 ===
-            if (enableRandomness && Random.value < 0.1f)
-            {
-                return ZombieState.Search;
-            }
+            // 최장거리 (25m 초과) - Idle 상태 (랜덤 Idle 타입 사용)
+            // Idle 타입은 UpdateAnimations()에서 랜덤으로 변경
             return ZombieState.Idle;
         }
         else
         {
-            // 중간 거리 (12m 초과 ~ 25m 이하)
+            // 중간 거리 (12m 초과 ~ 25m 이하) - Idle 상태
             return ZombieState.Idle;
         }
     }
@@ -300,7 +444,12 @@ public class ZombieAI : MonoBehaviour
                 {
                     navAgent.isStopped = true;
                 }
-                // 주변 탐색 로직
+                // 탐색 시작 위치와 회전 저장
+                if (!isSearching)
+                {
+                    searchStartPosition = transform.position;
+                    searchStartRotation = transform.eulerAngles.y;
+                }
                 break;
                 
             case ZombieState.Stumble:
@@ -356,8 +505,30 @@ public class ZombieAI : MonoBehaviour
                 break;
                 
             case ZombieState.Search:
-                // 주변을 둘러보는 동작
-                transform.Rotate(0, 45f * Time.deltaTime, 0);
+                // 탐색 타이머 업데이트
+                if (isSearching)
+                {
+                    searchTimer -= Time.deltaTime;
+                    
+                    // 주변을 둘러보는 동작 (부드러운 회전)
+                    float rotationAmount = searchRotationSpeed * Time.deltaTime;
+                    transform.Rotate(0, rotationAmount, 0);
+                    
+                    // 탐색 중 플레이어 감지 체크
+                    if (distanceToPlayer <= searchDetectionRange)
+                    {
+                        // 플레이어 발견! 탐색 중단하고 추적 시작
+                        isSearching = false;
+                        searchTimer = 0f;
+                    }
+                    
+                    // 탐색 시간 종료
+                    if (searchTimer <= 0f)
+                    {
+                        isSearching = false;
+                        searchTimer = 0f;
+                    }
+                }
                 break;
                 
             case ZombieState.Stumble:
@@ -442,8 +613,6 @@ public class ZombieAI : MonoBehaviour
         animator.SetBool(animParamIsWalking, false);
         animator.SetBool(animParamIsRunning, false);
         animator.SetBool(animParamIsAttacking, false);
-        animator.SetBool(animParamIsSearching, false);
-        animator.SetBool(animParamIsStumbling, false);
         
         // 속도 파라미터
         float speed = navAgent != null ? navAgent.velocity.magnitude : 0f;
@@ -453,7 +622,52 @@ public class ZombieAI : MonoBehaviour
         switch (currentState)
         {
             case ZombieState.Idle:
-                // Idle은 기본 상태 - 모든 Bool 파라미터는 false로 유지
+                // Idle 상태에서 랜덤으로 Idle 타입 변경
+                if (useRandomIdleTypes && availableIdleTypes.Length > 0)
+                {
+                    // 일정 간격마다 Idle 타입 랜덤 변경
+                    if (Time.time - lastIdleTypeChangeTime >= idleChangeInterval)
+                    {
+                        // 사용 가능한 Idle 타입 중 랜덤 선택 (각 좀비마다 다른 값)
+                        int previousType = (int)currentIdleType;
+                        int randomIndex = Random.Range(0, availableIdleTypes.Length);
+                        currentIdleType = availableIdleTypes[randomIndex];
+                        
+                        // 같은 타입 연속 방지
+                        if (availableIdleTypes.Length > 1 && (int)currentIdleType == previousType)
+                        {
+                            // 다른 타입 선택
+                            int newIndex = (randomIndex + 1) % availableIdleTypes.Length;
+                            currentIdleType = availableIdleTypes[newIndex];
+                        }
+                        
+                        Debug.Log($"ZombieAI: Idle 타입 랜덤 변경 - {currentIdleType} (인덱스: {(int)currentIdleType}, 사용 가능: {availableIdleTypes.Length}개)");
+                        lastIdleTypeChangeTime = Time.time;
+                    }
+                    
+                    // IdleType 파라미터 설정 (Animator Controller에 전달)
+                    // 매 프레임마다 설정하여 확실히 적용
+                    if (animator.parameters != null)
+                    {
+                        bool paramFound = false;
+                        foreach (AnimatorControllerParameter param in animator.parameters)
+                        {
+                            if (param.name == animParamIdleType && param.type == AnimatorControllerParameterType.Int)
+                            {
+                                animator.SetInteger(animParamIdleType, (int)currentIdleType);
+                                paramFound = true;
+                                break;
+                            }
+                        }
+                        
+                        // 파라미터가 없으면 경고 (디버깅용)
+                        if (!paramFound && Time.frameCount % 300 == 0)
+                        {
+                            Debug.LogWarning($"ZombieAI: IdleType 파라미터 '{animParamIdleType}'를 찾을 수 없습니다. Animator Controller에 추가해주세요.");
+                        }
+                    }
+                }
+                // 모든 Bool 파라미터는 false로 유지
                 break;
                 
             case ZombieState.Walk:
@@ -469,16 +683,38 @@ public class ZombieAI : MonoBehaviour
             case ZombieState.Attack:
                 // 공격 상태: IsAttacking = true
                 animator.SetBool(animParamIsAttacking, true);
+                // 공격 타입 설정 (단일 Controller + AttackType 파라미터 사용 시에만)
+                if (useAttackTypeParameter && animator.parameters != null)
+                {
+                    // AttackType 파라미터가 있으면 설정
+                    bool paramFound = false;
+                    foreach (AnimatorControllerParameter param in animator.parameters)
+                    {
+                        if (param.name == animParamAttackType && param.type == AnimatorControllerParameterType.Int)
+                        {
+                            animator.SetInteger(animParamAttackType, (int)currentAttackType);
+                            paramFound = true;
+                            break;
+                        }
+                    }
+                    
+                    // 파라미터가 없으면 경고 (디버깅용)
+                    if (!paramFound && Time.frameCount % 300 == 0)
+                    {
+                        Debug.LogWarning($"ZombieAI: AttackType 파라미터 '{animParamAttackType}'를 찾을 수 없습니다. Animator Controller에 추가해주세요.");
+                    }
+                }
+                // 여러 Controller 사용 시: 각 Controller에 이미 공격 애니메이션이 설정되어 있으므로
+                // IsAttacking = true만 설정하면 Controller가 자동으로 해당 공격 재생
                 break;
                 
             case ZombieState.Search:
-                // 탐색 상태: IsSearching = true
-                animator.SetBool(animParamIsSearching, true);
+                // 탐색 상태: IdleType.Search로 처리됨 (Idle 상태에서 IdleType 파라미터로 제어)
+                // 별도의 IsSearching 파라미터 불필요
                 break;
                 
             case ZombieState.Stumble:
-                // 우당탕 상태: IsStumbling = true
-                animator.SetBool(animParamIsStumbling, true);
+                // 우당탕 상태: 현재 사용하지 않음
                 break;
         }
         
@@ -504,13 +740,13 @@ public class ZombieAI : MonoBehaviour
         // NavMeshAgent를 사용하는 상태 (Walk, Run)
         if (navAgent.isOnNavMesh && (currentState == ZombieState.Walk || currentState == ZombieState.Run))
         {
-            // NavMeshAgent의 다음 위치 가져오기 (XZ 평면만)
+            // NavMeshAgent의 다음 위치 가져오기 (XZ만)
             Vector3 nextPosition = navAgent.nextPosition;
             
-            // 루트 모션의 Y축 델타를 완전히 무시하고 현재 Y 위치 유지
+            // Y 위치는 원래 위치 유지 (하늘로 올라가는 문제 방지)
             nextPosition.y = currentY;
             
-            // Transform 위치를 NavMeshAgent의 위치로 설정 (Y는 유지)
+            // Transform 위치를 NavMeshAgent의 위치로 설정 (Y는 원래 위치 유지)
             transform.position = nextPosition;
             
             // 회전은 NavMeshAgent의 회전을 사용하거나 루트 모션 회전 사용
@@ -527,17 +763,22 @@ public class ZombieAI : MonoBehaviour
         }
         else
         {
-            // NavMeshAgent를 사용하지 않는 상태에서는 루트 모션 적용
-            // 하지만 Y축 위치 변경은 완전히 무시하고 현재 Y 위치 유지
-            Vector3 rootMotionDelta = animator.deltaPosition;
-            rootMotionDelta.y = 0; // Y축 이동 무시
+            // NavMeshAgent를 사용하지 않는 상태 (Idle, Attack 등)
+            // Idle 상태에서는 위치 변경하지 않음 (설치한 위치 유지)
+            if (currentState != ZombieState.Idle)
+            {
+                // 루트 모션 적용 (Attack 등) - XZ만 이동, Y는 유지
+                Vector3 rootMotionDelta = animator.deltaPosition;
+                rootMotionDelta.y = 0; // Y축 이동 무시
+                
+                Vector3 newPosition = transform.position + rootMotionDelta;
+                newPosition.y = currentY; // Y 위치는 원래 위치 유지
+                
+                transform.position = newPosition;
+            }
+            // Idle 상태에서는 위치 변경하지 않음 (transform.position 유지)
             
-            Vector3 newPosition = transform.position + rootMotionDelta;
-            newPosition.y = currentY; // Y 위치 강제 유지
-            
-            transform.position = newPosition;
-            
-            // 회전 적용
+            // 회전 적용 (Idle 상태에서도 회전은 가능)
             if (animator.deltaRotation != Quaternion.identity)
             {
                 transform.rotation = animator.rootRotation;
