@@ -93,7 +93,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
       propertyPath: m_Name
-      value: Gun_Kriss_2
+      value: Gun_Kriss
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -105,9 +105,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4179120553027028617}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4824541634680963781}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7152492027688108789}
@@ -144,31 +141,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &4824541634680963781
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7536199948779485437}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b055ec3d81a2f40ac65c5510ecf9b5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxAmmo: 25
-  currentAmmo: 0
-  fireRate: 0.7
-  damage: 20
-  range: 100
-  isSniperMode: 0
-  defaultFOV: 60
-  scopeFOV: 20
-  zoomSpeed: 10
-  fpsCamera: {fileID: 0}
-  firePoint: {fileID: 0}
-  controller_gun_kriss: {fileID: 0}
-  scopeOverlay: {fileID: 0}
 --- !u!114 &7152492027688108789
 MonoBehaviour:
   m_ObjectHideFlags: 0
