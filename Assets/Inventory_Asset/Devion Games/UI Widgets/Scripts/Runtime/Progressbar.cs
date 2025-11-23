@@ -18,11 +18,37 @@ namespace DevionGames.UIWidgets
 
 		protected override void OnStart ()
 		{
-			progressbar.type = Image.Type.Filled;
+			// progressbar Image가 설정되지 않았으면 자동으로 찾기
+			if (progressbar == null)
+			{
+				// 모든 자식에서 Image 찾기 (Background 제외)
+				Image[] images = GetComponentsInChildren<Image>(true);
+				foreach (Image img in images)
+				{
+					if (img != null && img.transform != transform && img.gameObject.name != "Background")
+					{
+						progressbar = img;
+						Debug.Log("[Progressbar] ✓ Progressbar Image를 자동으로 찾았습니다: " + img.gameObject.name, this);
+						break;
+					}
+				}
+			}
+			
+			if (progressbar != null) {
+				progressbar.type = Image.Type.Filled;
+			} else {
+				Debug.LogError("[Progressbar] ✗ Progressbar Image를 찾을 수 없습니다! " +
+					"Unity Inspector에서 HealthBar 선택 → HealthBar (Progressbar) 컴포넌트 → Progressbar 필드에 " +
+					"Hierarchy의 HealthBar → Progressbar 오브젝트를 드래그하세요!", this);
+			}
 		}
 
 		public virtual void SetProgress (float progress)
 		{
+			if (progressbar == null) {
+				Debug.LogError("[Progressbar] Progressbar Image가 설정되지 않았습니다!", this);
+				return;
+			}
 			progressbar.fillAmount = progress;
 			if (progressLabel != null) {
 				progressLabel.text = (progress * 100f).ToString (format) + "%";
@@ -39,7 +65,9 @@ namespace DevionGames.UIWidgets
 			if (this.m_ProgressbarTitle != null) {
 				this.m_ProgressbarTitle.text = title;
 			}
-			progressbar.fillAmount = 0f;
+			if (progressbar != null) {
+				progressbar.fillAmount = 0f;
+			}
 			if (progressLabel != null)
 			{
 				progressLabel.text = "0%";
