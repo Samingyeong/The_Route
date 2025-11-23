@@ -19,9 +19,9 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private Animator animator;
     
     [Header("=== 1단계: 거리 기반 상태 전환 ===")]
-    [SerializeField] private float idleDistance = 25f;      // 25m 이상이면 Idle
-    [SerializeField] private float walkDistance = 12f;      // 12m 이하면 Walk 시작
-    [SerializeField] private float runDistance = 8f;        // 8m 이하면 Run
+    [SerializeField] private float idleDistance = 51f;      // 25m 이상이면 Idle
+    [SerializeField] private float walkDistance = 50f;      // 12m 이하면 Walk 시작
+    [SerializeField] private float runDistance = 20f;        // 8m 이하면 Run
     [SerializeField] private float attackDistance = 2.5f;   // 2.5m 이하면 Attack
     
     [Header("속도 설정")]
