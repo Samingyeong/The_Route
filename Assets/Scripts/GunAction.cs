@@ -24,7 +24,6 @@ public class GunAction : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        // 게임 시작 시 현재 카메라의 FOV를 기본값으로 저장
         if(fpsCamera != null) defaultFOV = fpsCamera.fieldOfView;
     }
     // Update is called once per frame
@@ -34,22 +33,17 @@ public class GunAction : MonoBehaviour
         if (Input.GetKey(KeyCode.Alpha2)) // 보통 우클릭이 Fire2입니다.
         {
             isSniperMode = true;
-            // 줌 인 (FOV를 줄임)
             fpsCamera.fieldOfView = Mathf.Lerp(fpsCamera.fieldOfView, scopeFOV, Time.deltaTime * zoomSpeed);
         }
         else
         {
             isSniperMode = false;
-            // 줌 아웃 (FOV를 원래대로)
             fpsCamera.fieldOfView = Mathf.Lerp(fpsCamera.fieldOfView, defaultFOV, Time.deltaTime * zoomSpeed);
         }
         if (scopeOverlay != null)
         {
-            // isSniperMode가 true면 켜지고(SetActive(true)), false면 꺼집니다.
             scopeOverlay.SetActive(isSniperMode);
         }
-
-
 
         // 총 쏠때 
         if (Input.GetKey(KeyCode.A) && Time.time >= nextFireTime && currentAmmo > 0) Shoot();
@@ -72,23 +66,15 @@ public class GunAction : MonoBehaviour
         controller_gun_kriss.SetTrigger("OnShoot");
         currentAmmo --;
 
-        // ⭐⭐⭐ 여기서부터 레이캐스트(총격 판정) 로직 ⭐⭐⭐
+        // 총격 판정
         RaycastHit hit; // 레이저에 맞은 물체의 정보를 담을 변수
 
-        // 카메라 위치에서, 카메라가 보는 앞 방향으로, range만큼 쏩니다.
+        // 카메라 위치에서, 카메라가 보는 앞 방향으로, range만큼 쏨
         if (Physics.Raycast(firePoint.position, firePoint.forward, out hit, range))
         {
-            Debug.Log("총구에서 쏴서 맞은 것: " + hit.transform.name);
-
-            // 좀비 찾기
             ShootZombie target = hit.transform.GetComponent<ShootZombie>();
-            if (target != null)
-            {
-                target.TakeDamage(damage);
-            }
+            if (target != null) target.TakeDamage(damage);
             
-            // (선택) 레이저가 어디로 나가는지 눈으로 확인하고 싶으면 아래 주석 해제
-            // Debug.DrawRay(firePoint.position, firePoint.forward * range, Color.red, 1.0f);
         }
     }
 }

@@ -11,6 +11,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator; 
     
+    [Header("오디오")]
+    [SerializeField] private AudioSource audioSource; // 소리 재생기
+    [SerializeField] private AudioClip stepSound;     // 발소리 파일 (.wav)
+
     private Vector3 velocity;
     private bool isGrounded;
     private float gravity = -9.81f;
@@ -34,7 +38,21 @@ public class PlayerController : MonoBehaviour
         HandleMovement();
         HandleJump();
     }
-    
+
+    public void OnFootstep() // 발소리
+    {
+        // 걷거나 뛰고 있을 때만 소리 재생
+        if (stepSound != null && audioSource != null && characterController.isGrounded)
+        {
+            // (선택사항) 소리가 기계음처럼 들리지 않게 음정(Pitch)을 살짝 랜덤으로 바꿈
+            audioSource.pitch = Random.Range(0.9f, 1.1f); 
+            audioSource.volume = Random.Range(0.8f, 1.0f);
+
+            // 소리 '한 번' 재생
+            audioSource.PlayOneShot(stepSound);
+        }
+    }
+
     void HandleMovement()
     {
         // 지면 체크
