@@ -113,6 +113,11 @@ public class ZombieAI : MonoBehaviour
         originalSpeed = navAgent.speed;
         navAgent.stoppingDistance = attackDistance;
         lastPlayerPosition = playerTarget != null ? playerTarget.position : transform.position;
+        
+        // NavMeshAgent와 애니메이션 루트 모션 충돌 방지
+        // updatePosition과 updateRotation을 false로 설정하여 OnAnimatorMove에서 수동 제어
+        navAgent.updatePosition = false;
+        navAgent.updateRotation = false;
     }
     
     void Update()
@@ -174,6 +179,21 @@ public class ZombieAI : MonoBehaviour
         
         // === 애니메이션 업데이트 ===
         UpdateAnimations();
+    }
+    
+    void LateUpdate()
+    {
+        // NavMeshAgent.updatePosition = false로 설정했으므로
+        // NavMeshAgent의 nextPosition을 현재 Transform 위치로 동기화
+        if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
+        {
+            // NavMeshAgent가 Transform 위치를 따라가도록 설정
+            // 이렇게 하면 NavMeshAgent가 올바른 경로를 계산할 수 있음
+            if (Vector3.Distance(transform.position, navAgent.nextPosition) > navAgent.radius)
+            {
+                navAgent.nextPosition = transform.position;
+            }
+        }
     }
     
     void UpdateStateMachine()
@@ -466,6 +486,62 @@ public class ZombieAI : MonoBehaviour
         if (Time.frameCount % 600 == 0)
         {
             Debug.Log($"ZombieAI 상태: {currentState}, 거리: {distanceToPlayer:F2}m (Walk:{walkDistance}m, Run:{runDistance}m), IsWalking: {animator.GetBool(animParamIsWalking)}, IsRunning: {animator.GetBool(animParamIsRunning)}");
+        }
+    }
+    
+    // === 루트 모션 제어 ===
+    // NavMeshAgent를 사용할 때 애니메이션의 루트 모션이 Y축 위치를 변경하지 않도록 제어
+    void OnAnimatorMove()
+    {
+        if (animator == null || navAgent == null || !navAgent.enabled)
+        {
+            return;
+        }
+        
+        // 현재 Y 위치 저장 (땅 아래로 들어가는 것을 방지)
+        float currentY = transform.position.y;
+        
+        // NavMeshAgent를 사용하는 상태 (Walk, Run)
+        if (navAgent.isOnNavMesh && (currentState == ZombieState.Walk || currentState == ZombieState.Run))
+        {
+            // NavMeshAgent의 다음 위치 가져오기 (XZ 평면만)
+            Vector3 nextPosition = navAgent.nextPosition;
+            
+            // 루트 모션의 Y축 델타를 완전히 무시하고 현재 Y 위치 유지
+            nextPosition.y = currentY;
+            
+            // Transform 위치를 NavMeshAgent의 위치로 설정 (Y는 유지)
+            transform.position = nextPosition;
+            
+            // 회전은 NavMeshAgent의 회전을 사용하거나 루트 모션 회전 사용
+            if (navAgent.velocity.magnitude > 0.1f)
+            {
+                // 이동 방향으로 회전
+                Vector3 direction = navAgent.velocity.normalized;
+                direction.y = 0;
+                if (direction.magnitude > 0.1f)
+                {
+                    transform.rotation = Quaternion.LookRotation(direction);
+                }
+            }
+        }
+        else
+        {
+            // NavMeshAgent를 사용하지 않는 상태에서는 루트 모션 적용
+            // 하지만 Y축 위치 변경은 완전히 무시하고 현재 Y 위치 유지
+            Vector3 rootMotionDelta = animator.deltaPosition;
+            rootMotionDelta.y = 0; // Y축 이동 무시
+            
+            Vector3 newPosition = transform.position + rootMotionDelta;
+            newPosition.y = currentY; // Y 위치 강제 유지
+            
+            transform.position = newPosition;
+            
+            // 회전 적용
+            if (animator.deltaRotation != Quaternion.identity)
+            {
+                transform.rotation = animator.rootRotation;
+            }
         }
     }
     
