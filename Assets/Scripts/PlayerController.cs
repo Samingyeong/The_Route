@@ -59,7 +59,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // [추가] 애니메이션 이벤트에서 호출될 "진짜 점프" 함수
     public void OnJumpEvent()
     {
         velocity.y = Mathf.Sqrt(jumpForce * -1f * gravity);
@@ -107,6 +106,11 @@ public class PlayerController : MonoBehaviour
             bool isMoving = moveDirection.magnitude > 0.1f; 
             animator.SetBool("IsWalking", isMoving);
             animator.SetBool("IsRunning", isMoving && isRunning);
+
+            // [추가] 뒤로 걷기 로직
+            // vertical 값이 0보다 작으면(보통 -1) 뒤로 걷는 것으로 판단합니다.
+            // 약간의 오차를 고려해 -0.1f보다 작을 때 true로 설정합니다.
+            animator.SetBool("IsBackwards", vertical < -0.1f);
         }
         
         velocity.y += gravity * Time.deltaTime;
@@ -115,14 +119,9 @@ public class PlayerController : MonoBehaviour
     
     void HandleJump()
     {
-        // [핵심 변경]
-        // "키를 방금 눌렀고(Counter > 0)"  && "땅에 있다(isGrounded)"면 점프!
         if (jumpBufferCounter > 0 && isGrounded)
         {
-            // 1. 점프 실행 (이벤트 방식 유지)
             animator.SetTrigger("OnJump");
-            
-            // 2. 점프 했으니 카운터 초기화 (중복 점프 방지)
             jumpBufferCounter = 0f;
         }
     }
