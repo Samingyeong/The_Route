@@ -1125,7 +1125,7 @@ GameObject:
   - component: {fileID: 8257393507568196682}
   - component: {fileID: 4698372794738294280}
   m_Layer: 0
-  m_Name: Mark23_
+  m_Name: Mark23
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
