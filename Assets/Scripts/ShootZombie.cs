@@ -4,68 +4,73 @@ public class ShootZombie : MonoBehaviour
 {
     [Header("Stats")]
     public int maxHp = 100;
-    private int currentHp;
-    
-    [Header("Dismemberment Settings")]
-    [Range(0, 1)] public float dismemberChance = 0.5f; // 50% 확률로 절단
-    public GameObject bloodEffectPrefab; // (선택) 피 이펙트
+    public int currentHp;
+    private bool isDead = false;
+
+    // 애니메이터 (사망 모션용)
+    private Animator animator;
+    private Collider mainCollider; // (선택) 사망 후 시체 판정 끄기용
 
     void Start()
     {
         currentHp = maxHp;
+        animator = GetComponent<Animator>();
+        mainCollider = GetComponent<Collider>();
     }
 
-    // 부위 정보를 포함한 피격 처리 함수
-    public void TakeHit(int damage, ZombieBodyPart part)
+    // 부위 정보를 받는 피격 함수
+    public void TakeHit(int damage, ZombieBodyPart.PartType partType)
     {
-        // 이미 죽었으면 무시
-        if (currentHp <= 0) return;
+        if (isDead) return;
 
-        // 1. 헤드샷 처리 (즉사)
-        if (part.partType == ZombieBodyPart.PartType.Head)
+        // 1. 헤드샷 판정 (머리면 무조건 즉사)
+        if (partType == ZombieBodyPart.PartType.Head)
         {
-            Debug.Log("헤드샷! 즉사.");
+            Debug.Log("헤드샷! (즉사)");
             currentHp = 0;
             Die();
             return;
         }
 
-        // 2. 일반 데미지 적용
+        // 2. 그 외 부위 (팔, 다리, 몸통) -> 그냥 데미지 적용
+        Debug.Log(partType + " 피격! 데미지: " + damage);
         currentHp -= damage;
 
-        // 3. 팔/다리 절단 로직 (체력이 남았을 때도 발생 가능)
-        // 몸통(Body)은 잘리면 안 되므로 제외
-        if (part.partType == ZombieBodyPart.PartType.Arm || part.partType == ZombieBodyPart.PartType.Leg)
+        if (currentHp <= 0)
         {
-            // 랜덤 확률 체크 (0.0 ~ 1.0)
-            if (Random.value < dismemberChance)
-            {
-                // 해당 부위 절단 명령
-                part.Dismember();
-                
-                // (선택) 피 이펙트 생성
-                if (bloodEffectPrefab != null)
-                {
-                    Instantiate(bloodEffectPrefab, part.transform.position, Quaternion.identity);
-                }
-            }
+            Die();
         }
-
-        // 4. 사망 체크
-        if (currentHp <= 0) Die();
     }
 
-    // (기존 호환용) 그냥 데미지만 들어올 때
+    // (호환용) 부위 상관없는 데미지 함수
     public void TakeDamage(int damage)
     {
+        if (isDead) return;
         currentHp -= damage;
         if (currentHp <= 0) Die();
     }
 
     void Die()
     {
-        // 여기에 사망 애니메이션이나 랙돌 로직 추가 가능
+        if (isDead) return;
+        isDead = true;
+
         Debug.Log("좀비 사망");
-        Destroy(gameObject); 
+
+        // 1. 사망 애니메이션 재생
+        if (animator != null)
+        {
+            animator.SetTrigger("OnDeath");
+        }
+
+        // 2. 죽은 뒤 총알 안 맞게 콜라이더 끄기 (선택사항)
+        // (자식들에 있는 ZombieBodyPart 콜라이더들도 끄고 싶다면 아래 주석 해제)
+        /*
+        Collider[] allColliders = GetComponentsInChildren<Collider>();
+        foreach(var col in allColliders) col.enabled = false;
+        */
+
+        // 3. 5초 뒤 시체 삭제
+        Destroy(gameObject, 5f);
     }
 }
