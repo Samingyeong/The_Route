@@ -5153,6 +5153,7 @@ GameObject:
   - component: {fileID: 4276966083380575820}
   - component: {fileID: 1044164923546441296}
   - component: {fileID: 6300608266414812650}
+  - component: {fileID: 5162201985121238819}
   m_Layer: 0
   m_Name: Kriss
   m_TagString: Untagged
@@ -5328,6 +5329,22 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5162201985121238819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4392658704498250586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ef5b95866a72de4ebb20d08870a0472, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  amount: 0.02
+  maxAmount: 0.06
+  smoothAmount: 6
+  tiltAmount: 2
 --- !u!1 &4482596774697995304
 GameObject:
   m_ObjectHideFlags: 0
