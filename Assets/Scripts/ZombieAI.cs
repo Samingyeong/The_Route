@@ -221,7 +221,7 @@ public class ZombieAI : MonoBehaviour
         UpdateAnimations();
     }
     
-    void LateUpdate()
+    void FixedUpdate()
     {
         // NavMeshAgent 위치 동기화
         if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)

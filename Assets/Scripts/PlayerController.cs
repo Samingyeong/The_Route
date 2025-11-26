@@ -5,32 +5,31 @@ public class PlayerController : MonoBehaviour
     [Header("이동 설정")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float runSpeed = 8f;
-    [SerializeField] private float jumpForce = 3f; 
-    private float jumpBufferCounter = 0f;
-    private float jumpBufferTime = 0.2f;
+    [SerializeField] private float jumpForce = 5f;
     
+    // [변경] 회전 속도 변수 삭제 (CameraFollow가 회전 담당함)
+
     [Header("컴포넌트")]
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator; 
     
-    [Header("오디오")]
-    [SerializeField] private AudioSource audioSource; 
-    [SerializeField] private AudioClip stepSound;    
-
-    private Vector3 velocity;
+    private float verticalVelocity; 
     private bool isGrounded;
-    private float gravity = -100f;
+    private float gravity = -20f;   
     private bool isRunning = false;
     
     void Start()
     {
-        if (characterController == null) characterController = GetComponent<CharacterController>();
         if (characterController == null)
         {
-            characterController = gameObject.AddComponent<CharacterController>();
-            characterController.height = 2f;
-            characterController.radius = 0.5f;
-            characterController.center = new Vector3(0, 1, 0);
+            characterController = GetComponent<CharacterController>();
+            // 없으면 자동 추가
+            if (characterController == null)
+            {
+                characterController = gameObject.AddComponent<CharacterController>();
+                characterController.height = 2f;
+                characterController.center = new Vector3(0, 1f, 0); 
+            }
         }
         if (animator == null) animator = GetComponent<Animator>(); 
     }
@@ -38,91 +37,71 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         HandleMovement();
-        if (Input.GetKeyDown(KeyCode.Space))
+        
+        // 점프
+        if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            jumpBufferCounter = jumpBufferTime;
+            animator.SetTrigger("OnJump");
+            verticalVelocity = Mathf.Sqrt(jumpForce * -2f * gravity);
         }
-        else
-        {
-            jumpBufferCounter -= Time.deltaTime;
-        }
-        HandleJump();
-    }
-
-    public void OnFootstep() 
-    {
-        if (stepSound != null && audioSource != null && characterController.isGrounded)
-        {
-            audioSource.pitch = Random.Range(0.9f, 1.1f); 
-            audioSource.volume = Random.Range(0.8f, 1.0f);
-            audioSource.PlayOneShot(stepSound);
-        }
-    }
-
-    public void OnJumpEvent()
-    {
-        velocity.y = Mathf.Sqrt(jumpForce * -1f * gravity);
-        characterController.Move(Vector3.up * 0.01f);
     }
 
     void HandleMovement()
     {
         isGrounded = characterController.isGrounded;
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f; 
-        }
         
+        if (isGrounded && verticalVelocity < 0)
+        {
+            verticalVelocity = -2f; 
+        }
+
         float horizontal = Input.GetAxis("Horizontal"); 
         float vertical = Input.GetAxis("Vertical");     
-        
         isRunning = Input.GetKey(KeyCode.LeftShift);
-        float currentSpeed = isRunning ? runSpeed : moveSpeed;
+
+        // [핵심 변경 사항]
+        // CameraFollow 스크립트가 이미 플레이어의 몸통을 카메라가 보는 방향으로 돌려놓았습니다.
+        // 그러므로 복잡한 카메라 계산 없이, 그냥 로컬 좌표(내 기준 앞/오른쪽)로 움직이면 됩니다.
         
-        Camera mainCam = Camera.main;
-        Vector3 moveDirection = Vector3.zero;
-        
-        if (mainCam != null)
-        {
-            Vector3 forward = mainCam.transform.forward;
-            Vector3 right = mainCam.transform.right;
-            forward.y = 0f; right.y = 0f;
-            forward.Normalize(); right.Normalize();
-            moveDirection = forward * vertical + right * horizontal;
-        }
-        else
-        {
-            moveDirection = transform.forward * vertical + transform.right * horizontal;
-        }
-        
-        if (moveDirection.magnitude > 0.1f)
+        // transform.forward = 내 몸이 보는 앞쪽 (이미 카메라 방향)
+        // transform.right = 내 몸의 오른쪽
+        Vector3 moveDirection = transform.forward * vertical + transform.right * horizontal;
+
+        // 대각선 이동 시 속도 일정하게
+        if (moveDirection.magnitude > 1f)
         {
             moveDirection.Normalize();
-            characterController.Move(moveDirection * currentSpeed * Time.deltaTime);
         }
 
+        // [삭제] 캐릭터 회전 로직 삭제 
+        // (CameraFollow가 마우스에 따라 몸통을 돌려주므로 여기서 건드리면 안 됨)
+
+        // 실제 이동 적용
+        float currentSpeed = isRunning ? runSpeed : moveSpeed;
+        Vector3 finalMove = moveDirection * currentSpeed;
+        
+        // 중력 적용
+        verticalVelocity += gravity * Time.deltaTime;
+        finalMove.y = verticalVelocity;
+
+        characterController.Move(finalMove * Time.deltaTime);
+
+        // 애니메이션
         if (animator != null)
         {
-            bool isMoving = moveDirection.magnitude > 0.1f; 
-            animator.SetBool("IsWalking", isMoving);
-            animator.SetBool("IsRunning", isMoving && isRunning);
-
-            // [추가] 뒤로 걷기 로직
-            // vertical 값이 0보다 작으면(보통 -1) 뒤로 걷는 것으로 판단합니다.
-            // 약간의 오차를 고려해 -0.1f보다 작을 때 true로 설정합니다.
+            // 입력이 있는지만 체크
+            bool hasInput = new Vector2(horizontal, vertical).sqrMagnitude > 0.01f;
+            
+            animator.SetBool("IsWalking", hasInput);
+            animator.SetBool("IsRunning", hasInput && isRunning);
+            
+            // 뒤로 걷기 애니메이션
             animator.SetBool("IsBackwards", vertical < -0.1f);
-        }
-        
-        velocity.y += gravity * Time.deltaTime;
-        characterController.Move(velocity * Time.deltaTime);
-    }
-    
-    void HandleJump()
-    {
-        if (jumpBufferCounter > 0 && isGrounded)
-        {
-            animator.SetTrigger("OnJump");
-            jumpBufferCounter = 0f;
+            
+            // [권장] 옆걸음질(Strafe) 애니메이션이 있다면 아래 파라미터 연결
+            // Blend Tree에서 InputX, InputY를 사용하면 자연스럽습니다.
+            animator.SetFloat("InputX", horizontal);
+            animator.SetFloat("InputY", vertical);
         }
     }
 }
