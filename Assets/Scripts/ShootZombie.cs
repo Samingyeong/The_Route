@@ -7,10 +7,14 @@ public class ShootZombie : MonoBehaviour
     public int currentHp;
     private bool isDead = false;
 
+    // [설정] 기어가기 시작할 체력
+    public int crawlHpThreshold = 30; 
+    
+    // [내부변수] 이미 기어갈지 말지 결정했는지 체크하는 플래그
+    private bool hasDecidedCrawl = false; 
+
     private Animator animator;
     private Collider mainCollider;
-    
-    // [추가] AI 스크립트 제어를 위한 참조
     private ZombieAI zombieAI;
 
     void Start()
@@ -18,8 +22,6 @@ public class ShootZombie : MonoBehaviour
         currentHp = maxHp;
         animator = GetComponent<Animator>();
         mainCollider = GetComponent<Collider>();
-        
-        // [추가] 같은 오브젝트에 있는 ZombieAI 가져오기
         zombieAI = GetComponent<ZombieAI>();
     }
 
@@ -27,16 +29,26 @@ public class ShootZombie : MonoBehaviour
     {
         if (isDead) return;
 
-        // 헤드샷 처리
+        // 헤드샷: 무조건 즉사 (기어가는 로직 무시)
         if (partType == ZombieBodyPart.PartType.Head)
         {
-            Debug.Log("헤드샷! (즉사)");
             currentHp = 0;
             Die();
             return;
         }
 
-        Debug.Log(partType + " 피격! 데미지: " + damage);
+        ApplyDamage(damage);
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (isDead) return;
+        ApplyDamage(damage);
+    }
+
+    // 데미지 처리 통합 함수
+    void ApplyDamage(int damage)
+    {
         currentHp -= damage;
 
         if (currentHp <= 0)
@@ -45,34 +57,28 @@ public class ShootZombie : MonoBehaviour
         }
         else
         {
-            // [추가] 아직 살아있으면 피격(Hit) 모션 재생
-            if (animator != null)
-            {
-                animator.SetTrigger("OnHit");
-            }
-            
-            // [추가] AI에게 피격 사실 알림 (잠시 멈추게 하기 위함)
-            if (zombieAI != null)
-            {
-                zombieAI.SetHit();
-            }
-        }
-    }
-
-    public void TakeDamage(int damage)
-    {
-        if (isDead) return;
-        currentHp -= damage;
-        
-        if (currentHp <= 0) 
-        {
-            Die();
-        }
-        else
-        {
-            // [추가] 호환용 함수에도 피격 모션 추가
+            // 피격 모션
             if (animator != null) animator.SetTrigger("OnHit");
             if (zombieAI != null) zombieAI.SetHit();
+
+            // [핵심 로직] 체력이 낮아졌고, 아직 결정하지 않았다면?
+            if (currentHp <= crawlHpThreshold && !hasDecidedCrawl)
+            {
+                hasDecidedCrawl = true; // 결정 완료 표시 (다시 실행 안 되게)
+
+                // 50% 확률 (Random.value는 0.0 ~ 1.0 사이 난수)
+                if (Random.value < 0.5f)
+                {
+                    // 당첨! -> 기어가기 시작
+                    if (zombieAI != null) zombieAI.StartCrawling();
+                    Debug.Log("다리가 부러졌다! (기어가기 시작)");
+                }
+                else
+                {
+                    // 꽝! -> 그냥 서서 계속 덤빔
+                    Debug.Log("아직 버틸만하다! (계속 걸음)");
+                }
+            }
         }
     }
 
@@ -81,28 +87,20 @@ public class ShootZombie : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        Debug.Log("좀비 사망");
-
-        // 1. 사망 애니메이션 재생
+        // 사망 트리거 발동
         if (animator != null)
         {
             animator.SetTrigger("OnDeath");
         }
-
-        // [추가] AI 완전히 정지시키기
-        if (zombieAI != null)
-        {
-            zombieAI.SetDead();
-        }
-
-        // 2. 콜라이더 끄기 (시체 위로 지나갈 수 있게)
-        if (mainCollider != null) mainCollider.enabled = false;
         
-        // 자식 콜라이더들도 끄기
+        // AI 정지
+        if (zombieAI != null) zombieAI.SetDead();
+
+        // 콜라이더 끄기
+        if (mainCollider != null) mainCollider.enabled = false;
         Collider[] allColliders = GetComponentsInChildren<Collider>();
         foreach(var col in allColliders) col.enabled = false;
 
-        // 3. 시체 삭제
         Destroy(gameObject, 5f);
     }
 }

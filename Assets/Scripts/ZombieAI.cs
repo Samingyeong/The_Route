@@ -6,6 +6,7 @@ public enum ZombieState
     Idle,
     Walk,
     Run,
+    Crawl,
     Attack,
     Hit, 
     Dead 
@@ -27,11 +28,13 @@ public class ZombieAI : MonoBehaviour
     [Header("=== 속도 설정 ===")]
     [SerializeField] private float walkSpeed = 2.5f;
     [SerializeField] private float runSpeed = 4.5f;
+    [SerializeField] private float crawlSpeed = 3.0f;
     
     [Header("=== 애니메이션 파라미터 ===")]
     [SerializeField] private string animParamIsWalking = "IsWalking";
     [SerializeField] private string animParamIsRunning = "IsRunning";
     [SerializeField] private string animParamIsAttacking = "IsAttacking";
+    [SerializeField] private string animParamIsCrawling = "IsCrawling";
     [SerializeField] private string animParamAttackType = "AttackType";
     [SerializeField] private string animParamIdleType = "IdleType";
     
@@ -96,6 +99,7 @@ public class ZombieAI : MonoBehaviour
     // [추가] 외부에서 좀비가 죽었는지 다쳤는지 알리기 위한 변수
     private bool isDead = false;
     private bool isHit = false;
+    private bool isCrawlingMode = false;
     private float hitRecoveryTime = 0.5f; // 피격 모션 길이만큼 멈춤 (필요시 조절)
     private float hitTimer = 0f;
     
@@ -241,6 +245,12 @@ public class ZombieAI : MonoBehaviour
         hitTimer = Time.time;
     }
 
+    public void StartCrawling()
+    {
+        if (isDead) return;
+        isCrawlingMode = true;
+    }
+
     void FixedUpdate()
     {
         // NavMeshAgent 위치 동기화
@@ -299,10 +309,17 @@ public class ZombieAI : MonoBehaviour
 
         if (distanceToPlayer <= attackDistance)
         {
+            // 기어가다가 공격할 때도 랜덤 공격을 할지, 아니면 기어가는 전용 공격이 있을지는 애니메이션에 따라 다름
+            // 여기선 기존 공격 로직 유지
             if (useRandomAttacks && availableAttackTypes.Length > 0)
                 currentAttackType = availableAttackTypes[Random.Range(0, availableAttackTypes.Length)];
             lastAttackTime = Time.time;
             return ZombieState.Attack;
+        }
+        if (isCrawlingMode)
+        {
+             // 공격 범위 밖이면 무조건 Crawl
+             return ZombieState.Crawl;
         }
         else if (distanceToPlayer <= runDistance) return ZombieState.Run;
         else if (distanceToPlayer <= walkDistance) return ZombieState.Walk;
@@ -315,11 +332,31 @@ public class ZombieAI : MonoBehaviour
 
         switch (state)
         {
-            // ... (기존 Idle, Walk, Run, Attack 케이스 유지) ...
+            case ZombieState.Idle:
+                navAgent.isStopped = true;
+                navAgent.nextPosition = transform.position;
+                // (기존 Idle 랜덤 로직 유지...)
+                break;
+                
+            case ZombieState.Walk:
+                navAgent.isStopped = false;
+                navAgent.speed = walkSpeed;
+                break;
+                
+            case ZombieState.Run:
+                navAgent.isStopped = false;
+                navAgent.speed = runSpeed;
+                break;
 
+            case ZombieState.Crawl: // [추가]
+                navAgent.isStopped = false;
+                navAgent.speed = crawlSpeed;
+                break;
+                
+            case ZombieState.Attack:
             case ZombieState.Hit:
             case ZombieState.Dead:
-                navAgent.isStopped = true; // 멈춤
+                navAgent.isStopped = true;
                 navAgent.velocity = Vector3.zero;
                 break;
         }
@@ -331,6 +368,7 @@ public class ZombieAI : MonoBehaviour
         {
             case ZombieState.Walk:
             case ZombieState.Run:
+            case ZombieState.Crawl: // [추가] 이동 로직 공유
                 if (navAgent != null && navAgent.enabled && !navAgent.isStopped && navAgent.isOnNavMesh)
                 {
                     navAgent.SetDestination(playerTarget.position);
@@ -366,6 +404,7 @@ public class ZombieAI : MonoBehaviour
         animator.SetBool(animParamIsWalking, false);
         animator.SetBool(animParamIsRunning, false);
         animator.SetBool(animParamIsAttacking, false);
+        animator.SetBool(animParamIsCrawling, false);
         
         // 상태별 애니메이션 설정
         switch (currentState)
@@ -391,6 +430,10 @@ public class ZombieAI : MonoBehaviour
                 
             case ZombieState.Run:
                 animator.SetBool(animParamIsRunning, true);
+                break;
+
+            case ZombieState.Crawl: // [추가]
+                animator.SetBool(animParamIsCrawling, true);
                 break;
                 
             case ZombieState.Attack:
@@ -421,7 +464,7 @@ public class ZombieAI : MonoBehaviour
         }
         
         // Walk, Run 상태: NavMeshAgent 위치 사용
-        if (navAgent.isOnNavMesh && (currentState == ZombieState.Walk || currentState == ZombieState.Run))
+        if (navAgent.isOnNavMesh && (currentState == ZombieState.Walk || currentState == ZombieState.Run || currentState == ZombieState.Crawl))
         {
             Vector3 nextPosition = navAgent.nextPosition;
             
