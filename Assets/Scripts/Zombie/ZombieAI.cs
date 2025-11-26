@@ -102,6 +102,13 @@ public class ZombieAI : MonoBehaviour
     private bool isCrawlingMode = false;
     private float hitRecoveryTime = 0.5f; // 피격 모션 길이만큼 멈춤 (필요시 조절)
     private float hitTimer = 0f;
+
+    //sound
+    private ZombieAudio zombieAudio;
+
+    // [추가] Idle 사운드 랜덤 타이머
+    private float idleSoundTimer;
+    private float idleSoundInterval;
     
     void Start()
     {
@@ -188,6 +195,9 @@ public class ZombieAI : MonoBehaviour
         {
             currentIdleType = availableIdleTypes[Random.Range(0, availableIdleTypes.Length)];
         }
+
+        zombieAudio = GetComponent<ZombieAudio>();
+        ResetIdleTimer();
     }
     
     void Update()
@@ -226,10 +236,26 @@ public class ZombieAI : MonoBehaviour
         playerPos.y = 0;
         distanceToPlayer = Vector3.Distance(zombiePos, playerPos);
 
+        if (!isDead && currentState != ZombieState.Attack && currentState != ZombieState.Hit)
+        {
+            idleSoundTimer -= Time.deltaTime;
+            if (idleSoundTimer <= 0)
+            {
+                if (zombieAudio != null) zombieAudio.PlayIdle();
+                ResetIdleTimer();
+            }
+        }
+
         UpdateStateMachine();
         UpdateAnimations();
     }
     
+    void ResetIdleTimer()
+    {
+        idleSoundInterval = Random.Range(3.0f, 7.0f); // 3~7초마다 울음소리
+        idleSoundTimer = idleSoundInterval;
+    }
+
     public void SetDead()
     {
         isDead = true;
@@ -286,46 +312,85 @@ public class ZombieAI : MonoBehaviour
     
     ZombieState DetermineState()
     {
+        // 1. 사망 상태 최우선 체크
         if (isDead) return ZombieState.Dead;
 
         // 2. 피격 상태 체크 (잠시 멈춤)
         if (isHit)
         {
+            // 설정된 회복 시간(hitRecoveryTime) 동안은 Hit 상태 유지
             if (Time.time - hitTimer < hitRecoveryTime)
             {
                 return ZombieState.Hit;
             }
             else
             {
-                isHit = false; // 회복 시간 지나면 해제
+                isHit = false; // 시간이 지나면 피격 상태 해제
             }
         }
-        // 공격 중이면 공격 상태 유지
+
+        // 3. 공격 중 유지 로직
+        // (한번 공격 모션이 시작되면 플레이어가 살짝 멀어져도 끊기지 않게 함)
         if (currentState == ZombieState.Attack)
         {
              if (distanceToPlayer <= attackDistance * 1.2f && Time.time - lastAttackTime < attackCooldown)
+             {
                 return ZombieState.Attack;
+             }
         }
 
+        // 4. 공격 시작 로직 (거리 안에 들어왔을 때)
         if (distanceToPlayer <= attackDistance)
         {
-            // 기어가다가 공격할 때도 랜덤 공격을 할지, 아니면 기어가는 전용 공격이 있을지는 애니메이션에 따라 다름
-            // 여기선 기존 공격 로직 유지
-            if (useRandomAttacks && availableAttackTypes.Length > 0)
-                currentAttackType = availableAttackTypes[Random.Range(0, availableAttackTypes.Length)];
-            lastAttackTime = Time.time;
-            return ZombieState.Attack;
+            // 쿨타임이 지났는지 확인
+            if (Time.time - lastAttackTime >= attackCooldown)
+            {
+                // 공격 타입 랜덤 선택
+                if (useRandomAttacks && availableAttackTypes.Length > 0)
+                {
+                    currentAttackType = availableAttackTypes[Random.Range(0, availableAttackTypes.Length)];
+                }
+
+                // [사운드] 공격 소리 재생
+                if (zombieAudio != null)
+                {
+                    zombieAudio.PlayAttack();
+                }
+
+                lastAttackTime = Time.time;
+                return ZombieState.Attack;
+            }
+            else
+            {
+                // 쿨타임 중이지만 거리가 가까우면 공격 상태(대기) 유지
+                return ZombieState.Attack;
+            }
         }
+        
+        // 5. 이동 상태 결정 (기어가기 vs 일반 이동)
         if (isCrawlingMode)
         {
-             // 공격 범위 밖이면 무조건 Crawl
-             return ZombieState.Crawl;
+            // [기어가기 모드]
+            // 공격 범위 밖이면 무조건 기어서 추격 (Idle 없이 끈질기게 쫓아오게 설정)
+            return ZombieState.Crawl;
         }
-        else if (distanceToPlayer <= runDistance) return ZombieState.Run;
-        else if (distanceToPlayer <= walkDistance) return ZombieState.Walk;
-        else return ZombieState.Idle;
+        else
+        {
+            // [일반 모드]
+            if (distanceToPlayer <= runDistance)
+            {
+                return ZombieState.Run;
+            }
+            else if (distanceToPlayer <= walkDistance)
+            {
+                return ZombieState.Walk;
+            }
+            else
+            {
+                return ZombieState.Idle;
+            }
+        }
     }
-    
     void EnterState(ZombieState state)
     {
         if (navAgent == null || !navAgent.enabled || !navAgent.isOnNavMesh) return;

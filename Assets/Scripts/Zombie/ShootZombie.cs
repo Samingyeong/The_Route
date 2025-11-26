@@ -16,6 +16,7 @@ public class ShootZombie : MonoBehaviour
     private Animator animator;
     private Collider mainCollider;
     private ZombieAI zombieAI;
+    private ZombieAudio zombieAudio;
 
     void Start()
     {
@@ -23,6 +24,7 @@ public class ShootZombie : MonoBehaviour
         animator = GetComponent<Animator>();
         mainCollider = GetComponent<Collider>();
         zombieAI = GetComponent<ZombieAI>();
+        zombieAudio = GetComponent<ZombieAudio>();
     }
 
     public void TakeHit(int damage, ZombieBodyPart.PartType partType)
@@ -37,13 +39,60 @@ public class ShootZombie : MonoBehaviour
             return;
         }
 
+        if (partType == ZombieBodyPart.PartType.Head)
+        {
+             if (zombieAudio != null) zombieAudio.PlayAgony(); // 으악!
+             // ...
+             Die();
+             return;
+        }
+
+        if (currentHp > 0 && zombieAudio != null)
+        {
+            zombieAudio.PlayHurt();
+        }
+
         ApplyDamage(damage);
     }
 
+    // (호환용) 부위 상관없는 데미지 함수
     public void TakeDamage(int damage)
     {
         if (isDead) return;
-        ApplyDamage(damage);
+
+        // 1. 피격 사운드 재생
+        // (체력이 0이 되어 죽을 때는 Die()에서 Agony 소리를 재생하므로, 여기선 살았을 때만 Hurt 재생)
+        if (currentHp > damage && zombieAudio != null) 
+        {
+            zombieAudio.PlayHurt();
+        }
+
+        currentHp -= damage;
+
+        if (currentHp <= 0)
+        {
+            Die();
+        }
+        else
+        {
+            // 2. 피격 애니메이션 및 AI 일시 정지
+            if (animator != null) animator.SetTrigger("OnHit");
+            if (zombieAI != null) zombieAI.SetHit();
+
+            // 3. 기어가기(Crawl) 확률 로직
+            // 체력이 임계값 이하로 떨어졌고, 아직 기어갈지 말지 결정하지 않았다면
+            if (currentHp <= crawlHpThreshold && !hasDecidedCrawl)
+            {
+                hasDecidedCrawl = true; // 결정 완료 플래그 (중복 실행 방지)
+
+                // 50% 확률로 기어가기 당첨
+                if (Random.value < 0.5f)
+                {
+                    if (zombieAI != null) zombieAI.StartCrawling();
+                    Debug.Log("TakeDamage 피격으로 다리 부상! (기어가기 시작)");
+                }
+            }
+        }
     }
 
     // 데미지 처리 통합 함수
@@ -86,6 +135,11 @@ public class ShootZombie : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
+        if (zombieAudio != null)
+        {
+            zombieAudio.PlayAgony();
+        }
 
         // 사망 트리거 발동
         if (animator != null)
