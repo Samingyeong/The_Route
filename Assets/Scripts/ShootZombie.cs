@@ -7,23 +7,27 @@ public class ShootZombie : MonoBehaviour
     public int currentHp;
     private bool isDead = false;
 
-    // 애니메이터 (사망 모션용)
     private Animator animator;
-    private Collider mainCollider; // (선택) 사망 후 시체 판정 끄기용
+    private Collider mainCollider;
+    
+    // [추가] AI 스크립트 제어를 위한 참조
+    private ZombieAI zombieAI;
 
     void Start()
     {
         currentHp = maxHp;
         animator = GetComponent<Animator>();
         mainCollider = GetComponent<Collider>();
+        
+        // [추가] 같은 오브젝트에 있는 ZombieAI 가져오기
+        zombieAI = GetComponent<ZombieAI>();
     }
 
-    // 부위 정보를 받는 피격 함수
     public void TakeHit(int damage, ZombieBodyPart.PartType partType)
     {
         if (isDead) return;
 
-        // 1. 헤드샷 판정 (머리면 무조건 즉사)
+        // 헤드샷 처리
         if (partType == ZombieBodyPart.PartType.Head)
         {
             Debug.Log("헤드샷! (즉사)");
@@ -32,7 +36,6 @@ public class ShootZombie : MonoBehaviour
             return;
         }
 
-        // 2. 그 외 부위 (팔, 다리, 몸통) -> 그냥 데미지 적용
         Debug.Log(partType + " 피격! 데미지: " + damage);
         currentHp -= damage;
 
@@ -40,14 +43,37 @@ public class ShootZombie : MonoBehaviour
         {
             Die();
         }
+        else
+        {
+            // [추가] 아직 살아있으면 피격(Hit) 모션 재생
+            if (animator != null)
+            {
+                animator.SetTrigger("OnHit");
+            }
+            
+            // [추가] AI에게 피격 사실 알림 (잠시 멈추게 하기 위함)
+            if (zombieAI != null)
+            {
+                zombieAI.SetHit();
+            }
+        }
     }
 
-    // (호환용) 부위 상관없는 데미지 함수
     public void TakeDamage(int damage)
     {
         if (isDead) return;
         currentHp -= damage;
-        if (currentHp <= 0) Die();
+        
+        if (currentHp <= 0) 
+        {
+            Die();
+        }
+        else
+        {
+            // [추가] 호환용 함수에도 피격 모션 추가
+            if (animator != null) animator.SetTrigger("OnHit");
+            if (zombieAI != null) zombieAI.SetHit();
+        }
     }
 
     void Die()
@@ -63,14 +89,20 @@ public class ShootZombie : MonoBehaviour
             animator.SetTrigger("OnDeath");
         }
 
-        // 2. 죽은 뒤 총알 안 맞게 콜라이더 끄기 (선택사항)
-        // (자식들에 있는 ZombieBodyPart 콜라이더들도 끄고 싶다면 아래 주석 해제)
-        /*
+        // [추가] AI 완전히 정지시키기
+        if (zombieAI != null)
+        {
+            zombieAI.SetDead();
+        }
+
+        // 2. 콜라이더 끄기 (시체 위로 지나갈 수 있게)
+        if (mainCollider != null) mainCollider.enabled = false;
+        
+        // 자식 콜라이더들도 끄기
         Collider[] allColliders = GetComponentsInChildren<Collider>();
         foreach(var col in allColliders) col.enabled = false;
-        */
 
-        // 3. 5초 뒤 시체 삭제
+        // 3. 시체 삭제
         Destroy(gameObject, 5f);
     }
 }
