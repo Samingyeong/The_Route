@@ -2,30 +2,34 @@ using UnityEngine;
 
 public class CameraRecoil : MonoBehaviour
 {
-    [Header("Recoil Speed (반동 속도)")]
-    public float snappiness = 20f;  
-    public float returnSpeed = 5f;   
+    [Header("Recoil Speed (반동 물리 설정)")]
+    public float snappiness = 0.1f;  // [중요] 낮을수록 빠릿함 (0.1 ~ 0.2 추천) -> SmoothDamp 시간
+    public float returnSpeed = 5f;   // 제자리로 돌아오는 속도 (크면 빨리 돌아옴)
 
     [Header("Recoil Recovery (반동 유지)")]
-    public float recoveryDelay = 0.3f; 
+    public float recoveryDelay = 0.2f; 
     private float recoveryTimer = 0f;  
 
-    [Header("Recoil Limits (각도 제한) - [추가됨]")]
-    public float maxTotalRecoilAngle = 15f; // 화면이 위로 들리는 최대 각도 제한
+    [Header("Recoil Limits (각도 제한)")]
+    public float maxTotalRecoilAngle = 25f; 
 
     [Header("Hipfire (일반 사격 강도)")]
-    public Vector3 RecoilRotation = new Vector3(10f, 5f, 3f); 
+    // Z축 값을 키워보세요! (기울기 효과)
+    public Vector3 RecoilRotation = new Vector3(10f, 4f, 5f); 
 
     [Header("Aiming (조준 사격 강도)")]
-    public Vector3 AimRecoilRotation = new Vector3(3f, 1f, 1f); 
+    public Vector3 AimRecoilRotation = new Vector3(3f, 1f, 1.5f); 
 
     [Header("Accumulation (반동 누적)")]
     public float accumulationPerShot = 5f;   
     public float maxAccumulation = 30f;      
     
     private float currentAccumulation = 0f; 
+    
+    // SmoothDamp를 위한 물리 변수들
     private Vector3 currentRotation; 
     private Vector3 targetRotation;  
+    private Vector3 rotationVelocity; // 가속도(관성) 저장용 변수
     
     private bool isAiming = false;
 
@@ -38,16 +42,22 @@ public class CameraRecoil : MonoBehaviour
         }
         else
         {
-            // 2. 복귀 로직
+            // 2. 타겟값 복귀 (Lerp: 타겟은 천천히 줄어듦)
             targetRotation = Vector3.Lerp(targetRotation, Vector3.zero, returnSpeed * Time.deltaTime);
+            
+            // 누적치도 천천히 해소
             if (currentAccumulation > 0)
             {
                 currentAccumulation -= Time.deltaTime * returnSpeed; 
             }
         }
         
-        // 3. 부드러운 이동
-        currentRotation = Vector3.Slerp(currentRotation, targetRotation, snappiness * Time.deltaTime);
+        // =========================================================
+        // [핵심 변경] Slerp -> SmoothDamp (관성 적용)
+        // =========================================================
+        // 목표 지점까지 스프링처럼 부드럽게 따라갑니다. 
+        // snappiness가 작을수록 스프링이 강해서 팍! 튀고, 클수록 물속에 있는 듯 부드럽습니다.
+        currentRotation = Vector3.SmoothDamp(currentRotation, targetRotation, ref rotationVelocity, snappiness);
         
         // 4. 적용
         transform.localRotation = Quaternion.Euler(currentRotation);
@@ -58,24 +68,26 @@ public class CameraRecoil : MonoBehaviour
         isAiming = isAimingState;
         recoveryTimer = recoveryDelay;
 
+        // 건네받은 값이 있다면 그걸 쓰고, 없다면 기본값 사용 (GunAction에서 덮어씌워짐)
         Vector3 baseRecoil = isAiming ? AimRecoilRotation : RecoilRotation;
+        
+        // 외부(GunAction)에서 값을 안 덮어씌웠을 경우를 대비한 안전장치
+        // GunAction에서 RecoilRotation을 주입하고 있다면 이 로직은 무시됩니다.
 
+        // 누적 반동 계산
         float finalRecoilX = baseRecoil.x + currentAccumulation;
         float finalRecoilY = Random.Range(-baseRecoil.y, baseRecoil.y);
+        
+        // [중요] Z축(기울기) 랜덤 적용 -> 이게 자연스러움의 핵심!
         float finalRecoilZ = Random.Range(-baseRecoil.z, baseRecoil.z);
 
-        // 반동 적용
+        // 타겟 회전값에 더하기 (-X가 위로 들림)
         targetRotation += new Vector3(-finalRecoilX, finalRecoilY, finalRecoilZ);
 
-        // =========================================================
-        // [핵심 수정] 반동 각도 제한 (Clamp)
-        // =========================================================
-        // X축 회전이 너무 위로(-값) 솟구치지 않게 제한합니다.
-        // -maxTotalRecoilAngle 보다 더 작아지지 않게(더 위로 안 가게) 막습니다.
-        // 예를 들어 max가 20이면, -20도까지만 들리고 그 이상은 무시됩니다.
+        // 각도 제한
         targetRotation.x = Mathf.Clamp(targetRotation.x, -maxTotalRecoilAngle, 0f);
 
-        // 다음 발사를 위해 누적치 증가
+        // 누적치 증가
         currentAccumulation += accumulationPerShot;
         currentAccumulation = Mathf.Clamp(currentAccumulation, 0f, maxAccumulation);
     }

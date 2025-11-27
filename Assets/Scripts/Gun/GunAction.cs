@@ -156,32 +156,49 @@ public class GunAction : MonoBehaviour
         nextFireTime = Time.time + currentGun.fireRate;
         currentGun.currentAmmo--;
 
-        if (currentGun.gunAnimator != null) 
-        {
-            currentGun.gunAnimator.SetTrigger("OnShoot");
-        }
+        if (currentGun.gunAnimator != null) currentGun.gunAnimator.SetTrigger("OnShoot");
 
-        // [핵심 수정] 사운드 재생 분기
-        if (currentGun.isAutomatic)
+        // 사운드
+        if (!currentGun.isAutomatic)
         {
-            // 연사 총은 Update()에서 Loop로 소리를 켜고 끄므로
-            // 여기서 PlayOneShot을 하면 소리가 중첩됨. -> 아무것도 안 함!
-        }
-        else
-        {
-            // 단발 총은 여기서 한 발씩 재생 (PlayOneShot)
             if (currentGun.fireSound != null) audioSource.PlayOneShot(currentGun.fireSound);
         }
 
-        // 반동 및 레이캐스트 (기존 동일)
+        // 손 반동
         if (weaponRecoil != null) weaponRecoil.RecoilFire();
+
+        // [카메라 반동 적용]
         if (cameraRecoil != null)
         {
-            cameraRecoil.RecoilRotation = currentGun.recoilRotation;
-            cameraRecoil.AimRecoilRotation = currentGun.aimRecoilRotation;
+            // 1. 반동 각도 랜덤 계산 (기존 동일)
+            Vector3 randomRecoil = new Vector3(
+                Random.Range(currentGun.minRecoilRotation.x, currentGun.maxRecoilRotation.x),
+                Random.Range(currentGun.minRecoilRotation.y, currentGun.maxRecoilRotation.y),
+                Random.Range(currentGun.minRecoilRotation.z, currentGun.maxRecoilRotation.z)
+            );
+
+            Vector3 randomAimRecoil = new Vector3(
+                Random.Range(currentGun.minAimRecoilRotation.x, currentGun.maxAimRecoilRotation.x),
+                Random.Range(currentGun.minAimRecoilRotation.y, currentGun.maxAimRecoilRotation.y),
+                Random.Range(currentGun.minAimRecoilRotation.z, currentGun.maxAimRecoilRotation.z)
+            );
+
+            // 2. 값 적용 (각도)
+            cameraRecoil.RecoilRotation = randomRecoil;
+            cameraRecoil.AimRecoilRotation = randomAimRecoil;
+
+            // =========================================================
+            // [핵심 추가] 총의 속도(물리) 설정을 카메라에 덮어씌움!
+            // =========================================================
+            cameraRecoil.snappiness = currentGun.snappiness;
+            cameraRecoil.returnSpeed = currentGun.returnSpeed;
+            // =========================================================
+
+            // 3. 발사 실행
             cameraRecoil.RecoilFire(isSniperMode);
         }
 
+        // 레이캐스트 (기존 동일)
         Ray ray;
         if (isSniperMode) ray = fpsCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         else ray = new Ray(currentGun.firePoint.position, currentGun.firePoint.forward);
