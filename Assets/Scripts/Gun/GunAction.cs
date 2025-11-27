@@ -117,10 +117,11 @@ public class GunAction : MonoBehaviour
                 audioSource.clip = null;
             }
 
+            // 애니메이션 실행 (이제 소리는 여기서 안 냄!)
             if(currentGun.gunAnimator != null) currentGun.gunAnimator.SetTrigger("OnReload");
             
-            // 재장전 소리는 PlayOneShot으로 (끊기지 않게)
-            if (currentGun.reloadSound != null) audioSource.PlayOneShot(currentGun.reloadSound);
+            // [삭제됨] 여기서 즉시 소리 재생하던 코드 삭제
+            // if (currentGun.reloadSound != null) audioSource.PlayOneShot(currentGun.reloadSound);
             
             currentGun.Reload();
         }

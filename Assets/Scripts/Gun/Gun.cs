@@ -41,4 +41,14 @@ public class Gun : MonoBehaviour
     {
         currentAmmo = maxAmmo;
     }
+    public void PlayReloadSound()
+    {
+        // 플레이어(부모)에 있는 AudioSource를 찾아서 재생
+        AudioSource audio = GetComponentInParent<AudioSource>();
+        
+        if (audio != null && reloadSound != null)
+        {
+            audio.PlayOneShot(reloadSound);
+        }
+    }
 }

@@ -197955,6 +197955,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4568513699009105494, guid: cb905e68d832bc24595a10ed418997d3, type: 3}
+      propertyPath: fireSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 0e903db20f0f5ad43a0192d5b963d2c5, type: 3}
+    - target: {fileID: 4568513699009105494, guid: cb905e68d832bc24595a10ed418997d3, type: 3}
+      propertyPath: reloadSound
+      value: 
+      objectReference: {fileID: 8300000, guid: bac5742f27ba42b4687ad23ee33d3970, type: 3}
+    - target: {fileID: 8123383298980266151, guid: cb905e68d832bc24595a10ed418997d3, type: 3}
+      propertyPath: reloadSound
+      value: 
+      objectReference: {fileID: 8300000, guid: fb476a9470598f545a1ad1cbb3f3bc6f, type: 3}
     - target: {fileID: 9062864498060139562, guid: cb905e68d832bc24595a10ed418997d3, type: 3}
       propertyPath: m_Name
       value: player_final_
