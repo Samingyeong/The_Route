@@ -12,11 +12,27 @@ public class PlayerController : MonoBehaviour
     [Header("컴포넌트")]
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator; 
+    [SerializeField] private AudioSource audioSource; // 소리 재생기
+    [SerializeField] private AudioClip stepSound;     // 발소리 파일 (.wav)
     
     private float verticalVelocity; 
     private bool isGrounded;
     private float gravity = -20f;   
     private bool isRunning = false;
+    
+    public void OnFootstep() // 발소리
+    {
+        // 걷거나 뛰고 있을 때만 소리 재생
+        if (stepSound != null && audioSource != null && characterController.isGrounded)
+        {
+            // (선택사항) 소리가 기계음처럼 들리지 않게 음정(Pitch)을 살짝 랜덤으로 바꿈
+            audioSource.pitch = Random.Range(0.9f, 1.1f); 
+            audioSource.volume = Random.Range(0.8f, 1.0f);
+
+            // 소리 '한 번' 재생
+            audioSource.PlayOneShot(stepSound);
+        }
+    }
     
     void Start()
     {
@@ -98,10 +114,6 @@ public class PlayerController : MonoBehaviour
             // 뒤로 걷기 애니메이션
             animator.SetBool("IsBackwards", vertical < -0.1f);
             
-            // [권장] 옆걸음질(Strafe) 애니메이션이 있다면 아래 파라미터 연결
-            // Blend Tree에서 InputX, InputY를 사용하면 자연스럽습니다.
-            animator.SetFloat("InputX", horizontal);
-            animator.SetFloat("InputY", vertical);
         }
     }
 }

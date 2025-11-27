@@ -24,6 +24,7 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private float walkDistance = 50f;
     [SerializeField] private float runDistance = 20f;
     [SerializeField] private float attackDistance = 2.5f;
+    [SerializeField] private float attackMaintainDistance = 3.0f;
     
     [Header("=== 속도 설정 ===")]
     [SerializeField] private float walkSpeed = 2.5f;
@@ -42,8 +43,7 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private bool useRandomIdleTypes = true;
     [Tooltip("Idle 상태에서 랜덤으로 재생할 Idle 타입들")]
     [SerializeField] private IdleType[] availableIdleTypes = { 
-        IdleType.Idle, 
-        IdleType.Agonizing, 
+        IdleType.Idle,  
         IdleType.Search 
     };
     
@@ -95,6 +95,11 @@ public class ZombieAI : MonoBehaviour
     // 공격 관련
     private float lastAttackTime = 0f;
     private float attackCooldown = 0.5f;
+    
+    // [추가] 공격 애니메이션 추적용
+    private AttackType lastSetAttackType = AttackType.Attack;
+    private bool hasTriggeredAttack = false; // 이번 공격 사이클에서 트리거했는지
+    private ZombieState lastAttackState = ZombieState.Idle; // 이전 프레임의 상태
 
     // [추가] 외부에서 좀비가 죽었는지 다쳤는지 알리기 위한 변수
     private bool isDead = false;
@@ -109,6 +114,11 @@ public class ZombieAI : MonoBehaviour
     // [추가] Idle 사운드 랜덤 타이머
     private float idleSoundTimer;
     private float idleSoundInterval;
+    
+    // [디버깅] 디버그 로그 출력 제어
+    [Header("=== 디버깅 ===")]
+    [SerializeField] private bool enableAttackDebug = true;
+    [SerializeField] private int debugLogInterval = 60; // 프레임 간격 (60프레임 = 약 1초)
     
     void Start()
     {
@@ -154,7 +164,7 @@ public class ZombieAI : MonoBehaviour
         }
         
         // 초기 설정
-        navAgent.stoppingDistance = attackDistance;
+        navAgent.stoppingDistance = attackDistance * 0.8f;
         
         // NavMeshAgent와 애니메이션 루트 모션 충돌 방지
         navAgent.updatePosition = false;
@@ -247,7 +257,27 @@ public class ZombieAI : MonoBehaviour
         }
 
         UpdateStateMachine();
+        
+        // [추가] 상태 변경 추적 (애니메이션 트리거를 위해)
+        lastAttackState = currentState;
+        
         UpdateAnimations();
+    }
+    
+    void RandomizeAttack()
+    {
+        if (!isCrawlingMode && useRandomAttacks && availableAttackTypes.Length > 0)
+        {
+            // 랜덤 뽑기
+            AttackType previousAttackType = currentAttackType;
+            currentAttackType = availableAttackTypes[Random.Range(0, availableAttackTypes.Length)];
+            
+            // [디버깅] 공격 타입 변경
+            if (enableAttackDebug)
+            {
+                Debug.Log($"[ZombieAI] 공격 타입 변경: {previousAttackType} -> {currentAttackType} (값: {(int)currentAttackType})");
+            }
+        }
     }
     
     void ResetIdleTimer()
@@ -333,40 +363,41 @@ public class ZombieAI : MonoBehaviour
         // (한번 공격 모션이 시작되면 플레이어가 살짝 멀어져도 끊기지 않게 함)
         if (currentState == ZombieState.Attack)
         {
-             if (distanceToPlayer <= attackDistance * 1.2f && Time.time - lastAttackTime < attackCooldown)
-             {
+            if (distanceToPlayer <= attackMaintainDistance)
+            {
+                // 쿨타임이 찼으면 새로운 공격 준비
+                if (Time.time - lastAttackTime >= attackCooldown)
+                {
+                    RandomizeAttack(); // [중요] 쿨타임 찰 때마다 새로 뽑기
+                    lastAttackTime = Time.time; // 시간 갱신
+                    if (zombieAudio != null) zombieAudio.PlayAttack();
+                    // [추가] 새로운 공격 타입이 선택되었으므로 트리거 리셋
+                    hasTriggeredAttack = false;
+                }
+                
+                // 쿨타임이 안 찼어도(공격 후 대기 중) 상태는 Attack 유지
                 return ZombieState.Attack;
-             }
+            }
+            // 거리가 너무 멀어지면 추격(Run/Walk)으로 전환
         }
 
         // 4. 공격 시작 로직 (거리 안에 들어왔을 때)
-        if (distanceToPlayer <= attackDistance)
+        else if (distanceToPlayer <= attackDistance)
         {
-            // 쿨타임이 지났는지 확인
             if (Time.time - lastAttackTime >= attackCooldown)
             {
-                // 공격 타입 랜덤 선택
-                if (useRandomAttacks && availableAttackTypes.Length > 0)
-                {
-                    currentAttackType = availableAttackTypes[Random.Range(0, availableAttackTypes.Length)];
-                }
-
-                // [사운드] 공격 소리 재생
-                if (zombieAudio != null)
-                {
-                    zombieAudio.PlayAttack();
-                }
-
+                RandomizeAttack(); // [중요] 첫 진입 시 랜덤 뽑기
                 lastAttackTime = Time.time;
+                if (zombieAudio != null) zombieAudio.PlayAttack();
+                hasTriggeredAttack = false; // [추가] 새로운 공격 시작
                 return ZombieState.Attack;
             }
             else
             {
-                // 쿨타임 중이지만 거리가 가까우면 공격 상태(대기) 유지
+                // 쿨타임 중이지만 사거리 안에 들어왔으므로 공격 태세(대기)로 진입
                 return ZombieState.Attack;
             }
         }
-        
         // 5. 이동 상태 결정 (기어가기 vs 일반 이동)
         if (isCrawlingMode)
         {
@@ -423,6 +454,32 @@ public class ZombieAI : MonoBehaviour
             case ZombieState.Dead:
                 navAgent.isStopped = true;
                 navAgent.velocity = Vector3.zero;
+                // [추가] Attack 상태 진입 시 공격 트리거 플래그 리셋 및 AttackType 설정
+                if (state == ZombieState.Attack && !isCrawlingMode)
+                {
+                    hasTriggeredAttack = false;
+                    // AttackType을 상태 진입 시에만 설정
+                    if (useRandomAttacks && hasAttackTypeParameter && animator != null)
+                    {
+                        
+                        
+                        
+                        int attackTypeValue = (int)currentAttackType;
+                        animator.SetInteger("AttackType", attackTypeValue);
+                        Debug.Log($"[ZombieAI] Attack 상태 진입 - AttackType 설정 (Int): {currentAttackType} = {attackTypeValue}");
+                        lastSetAttackType = currentAttackType;
+                    }
+                    else if (enableAttackDebug)
+                    {
+                        // [디버깅] AttackType 설정 실패
+                        Debug.LogWarning($"[ZombieAI] Attack 상태 진입 - AttackType 설정 실패 | useRandomAttacks: {useRandomAttacks}, hasAttackTypeParameter: {hasAttackTypeParameter}, animator: {animator != null}");
+                    }
+                }
+                else if (state == ZombieState.Attack && isCrawlingMode && enableAttackDebug)
+                {
+                    // [디버깅] 기어가기 공격 모드
+                    Debug.Log("[ZombieAI] Attack 상태 진입 - 기어가기 공격 모드");
+                }
                 break;
         }
     }
@@ -478,14 +535,7 @@ public class ZombieAI : MonoBehaviour
                 // IdleType 파라미터 설정
                 if (useRandomIdleTypes && hasIdleTypeParameter)
                 {
-                    if (isIdleTypeFloat)
-                    {
-                        animator.SetFloat(animParamIdleType, (float)(int)currentIdleType);
-                    }
-                    else
-                    {
-                        animator.SetInteger(animParamIdleType, (int)currentIdleType);
-                    }
+                    animator.SetInteger("AttackType", (int)currentIdleType);
                 }
                 break;
                 
@@ -503,19 +553,119 @@ public class ZombieAI : MonoBehaviour
                 
             case ZombieState.Attack:
                 // AttackType 파라미터 설정 (AnyState 전환 트리거)
-                if (useRandomAttacks && hasAttackTypeParameter)
+                if (isCrawlingMode)
                 {
-                    if (isAttackTypeFloat)
+                    // 기어가는 상태 유지
+                    animator.SetBool(animParamIsCrawling, true);
+                    // 공격 트리거 (Crawl -> CrawlBite 전환용)
+                    animator.SetBool(animParamIsAttacking, true);
+                    
+                    // [디버깅] 기어가기 공격
+                    if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
                     {
-                        animator.SetFloat(animParamAttackType, (float)(int)currentAttackType);
+                        AnimatorStateInfo crawlStateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                        Debug.Log($"[ZombieAI] 기어가기 공격 - State: {crawlStateInfo.fullPathHash}, NormalizedTime: {crawlStateInfo.normalizedTime:F2}");
+                    }
+                    
+                    // 기어가는 공격은 AttackType 파라미터를 건드리지 않음
+                }
+                else
+                {
+                    // 서서 하는 공격
+                    // [수정] AttackType을 항상 설정 (모든 타입이 작동하도록)
+                    if (useRandomAttacks && hasAttackTypeParameter)
+                    {
+                        // AttackType을 매 프레임 설정하여 확실히 반영되도록 함
+                        
+                        
+                        int attackTypeValue = (int)currentAttackType;
+                        animator.SetInteger("AttackType", attackTypeValue);
+                        Debug.Log($"[ZombieAI] Attack 상태 진입 - AttackType 설정 (Int): {currentAttackType} = {attackTypeValue}");
+                            
+                        // [디버깅] AttackType 값 확인 (주기적으로)
+                        if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
+                        {
+                            int actualValue = animator.GetInteger(animParamAttackType);
+                            Debug.Log($"[ZombieAI] Attack 상태 진입 - AttackType 설정 (Int): {currentAttackType} = {attackTypeValue}");
+                            if (actualValue != attackTypeValue)
+                            {
+                                Debug.LogWarning($"[ZombieAI] AttackType 값 불일치! 설정: {attackTypeValue}, 실제: {actualValue}");
+                            }
+                        }
+                        
+                        lastSetAttackType = currentAttackType;
+                    }
+                    
+                    // [수정] 공격 애니메이션 상태 확인
+                    AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                    bool isInAttackAnimation = stateInfo.IsName("attack") || 
+                                              stateInfo.IsName("kicking") ||
+                                              stateInfo.IsName("punching") ||
+                                              stateInfo.IsName("headbutt") ||
+                                              stateInfo.IsName("scratch");
+                    
+                    // [디버깅] 애니메이션 상태 정보
+                    string currentStateName = stateInfo.IsName("attack") ? "attack" :
+                                             stateInfo.IsName("kicking") ? "kicking" :
+                                             stateInfo.IsName("punching") ? "punching" :
+                                             stateInfo.IsName("headbutt") ? "headbutt" :
+                                             stateInfo.IsName("scratch") ? "scratch" : "기타";
+                    
+                    // [수정] 공격 애니메이션이 재생 중일 때는 IsAttacking을 false로 유지
+                    if (isInAttackAnimation)
+                    {
+                        // 애니메이션이 끝났는지 확인
+                        if (stateInfo.normalizedTime >= 0.95f)
+                        {
+                            // 애니메이션이 거의 끝났으므로 다음 공격을 트리거할 수 있도록 준비
+                            hasTriggeredAttack = false;
+                            // IsAttacking을 false로 설정하여 애니메이션이 완전히 끝나도록 함
+                            animator.SetBool(animParamIsAttacking, false);
+                            
+                            // [디버깅] 공격 애니메이션 종료 직전
+                            if (enableAttackDebug)
+                            {
+                                Debug.Log($"[ZombieAI] 공격 애니메이션 종료 직전 - Type: {currentAttackType}, State: {currentStateName}, NormalizedTime: {stateInfo.normalizedTime:F2}");
+                            }
+                        }
+                        else
+                        {
+                            // 애니메이션이 재생 중이면 IsAttacking을 false로 유지 (중단 방지)
+                            animator.SetBool(animParamIsAttacking, false);
+                            
+                            // [디버깅] 공격 애니메이션 재생 중 (주기적 출력)
+                            if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
+                            {
+                                Debug.Log($"[ZombieAI] 공격 애니메이션 재생 중 - Type: {currentAttackType}, State: {currentStateName}, NormalizedTime: {stateInfo.normalizedTime:F2}, IsAttacking: {animator.GetBool(animParamIsAttacking)}");
+                            }
+                        }
+                    }
+                    // 공격 애니메이션이 재생 중이 아니고, 트리거하지 않았으면 트리거
+                    else if (!hasTriggeredAttack)
+                    {
+                        // [중요] AttackType을 먼저 설정한 후 IsAttacking을 true로 설정
+                        // 이렇게 하면 애니메이션 컨트롤러가 올바른 AttackType 값을 읽을 수 있음
+                        animator.SetBool(animParamIsAttacking, true);
+                        hasTriggeredAttack = true;
+                        
+                        // [디버깅] 공격 트리거
+                        if (enableAttackDebug)
+                        {
+                            string paramValue = isAttackTypeFloat ? 
+                                animator.GetFloat(animParamAttackType).ToString() : 
+                                animator.GetInteger(animParamAttackType).ToString();
+                            Debug.Log($"[ZombieAI] 공격 트리거! - Type: {currentAttackType}, AttackType 파라미터: {paramValue}, IsAttacking: {animator.GetBool(animParamIsAttacking)}");
+                        }
                     }
                     else
                     {
-                        animator.SetInteger(animParamAttackType, (int)currentAttackType);
+                        // [디버깅] 공격 대기 중 (트리거는 했지만 아직 애니메이션이 시작되지 않음)
+                        if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
+                        {
+                            Debug.Log($"[ZombieAI] 공격 대기 중 - Type: {currentAttackType}, State: {currentStateName}, NormalizedTime: {stateInfo.normalizedTime:F2}, hasTriggeredAttack: {hasTriggeredAttack}");
+                        }
                     }
                 }
-                // IsAttacking = true 설정 (AnyState 전환 트리거)
-                animator.SetBool(animParamIsAttacking, true);
                 break;
         }
     }
