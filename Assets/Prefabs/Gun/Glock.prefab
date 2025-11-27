@@ -1537,7 +1537,6 @@ GameObject:
   - component: {fileID: 8935818495567118847}
   - component: {fileID: 7069572930475751692}
   - component: {fileID: 3308070086241167180}
-  - component: {fileID: 7874470628605020397}
   m_Layer: 0
   m_Name: Glock
   m_TagString: Untagged
@@ -1688,34 +1687,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &7874470628605020397
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2176120004353524491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2be3efab01f7b4a4697ac091b50161bb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxAmmo: 12
-  currentAmmo: 0
-  fireRate: 0.2
-  damage: 15
-  range: 50
-  isSniperMode: 0
-  defaultFOV: 60
-  scopeFOV: 40
-  zoomSpeed: 10
-  fpsCamera: {fileID: 0}
-  firePoint: {fileID: 5079528806562312839}
-  controller_gun_glock: {fileID: 3308070086241167180}
-  scopeOverlay: {fileID: 5659461271031897574}
-  audioSource: {fileID: 7069572930475751692}
-  fireSound: {fileID: 8300000, guid: 3bba5b42b613655449c59a4078b4d23b, type: 3}
-  reloadSound: {fileID: 8300000, guid: 45919062440ec114b91ec9cbd9805853, type: 3}
 --- !u!1 &2180310314821225232
 GameObject:
   m_ObjectHideFlags: 0

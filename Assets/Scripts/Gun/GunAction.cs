@@ -2,176 +2,203 @@ using UnityEngine;
 
 public class GunAction : MonoBehaviour
 {
-    // 총 설정
-    public int maxAmmo = 25; 
-    public int currentAmmo = 0; 
-    public float fireRate = 0.7f;
-    private float nextFireTime = 0f;
-    public int damage = 20;      
-    public float range = 100f;   
+    [Header("무기 목록")]
+    public Gun[] allGuns;       
+    private Gun currentGun;     
 
-    // 스코프 모드 설정
-    public bool isSniperMode = false; 
-    public float defaultFOV = 60f;    
-    public float scopeFOV = 20f;      
-    public float zoomSpeed = 10f;     
-
-    // 컴포넌트 연결
-    public Camera fpsCamera;     
-    public Transform firePoint;
-    public Animator controller_gun_kriss;
-    public GameObject scopeOverlay;
-
+    [Header("컴포넌트 연결")]
+    public Camera fpsCamera;
+    
     [Header("Recoil System")]
     public WeaponRecoil weaponRecoil;
     public CameraRecoil cameraRecoil;
 
-    // 소리 설정
-    [Header("Sound Settings")]
-    public AudioSource audioSource; 
-    public AudioClip fireSound;     
-    public AudioClip reloadSound;   
+    [Header("Sound")]
+    public AudioSource audioSource;
+
+    [Header("UI & Scope")]
+    public GameObject scopeOverlay;
+    public float defaultFOV = 60f;
+    public float scopeFOV = 30f;
+    public bool isSniperMode = false;
+
+    private float nextFireTime = 0f;
 
     void Start()
     {
-        if(fpsCamera != null) defaultFOV = fpsCamera.fieldOfView;
+        if (fpsCamera != null) defaultFOV = fpsCamera.fieldOfView;
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-        currentAmmo = maxAmmo;
+        
+        // 초기화
+        foreach(var gun in allGuns) gun.currentAmmo = gun.maxAmmo;
+        SwapWeapon(0);
     }
 
-   void Update()
+    void Update()
     {
-        // 스코프 로직
-        if (Input.GetKey(KeyCode.Alpha2)) 
+        if (currentGun == null) return;
+
+        // 1. 무기 교체
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SwapWeapon(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) SwapWeapon(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) SwapWeapon(2);
+
+        // 2. 조준
+        if (Input.GetMouseButton(1)) 
         {
             isSniperMode = true;
-            fpsCamera.fieldOfView = Mathf.Lerp(fpsCamera.fieldOfView, scopeFOV, Time.deltaTime * zoomSpeed);
+            fpsCamera.fieldOfView = Mathf.Lerp(fpsCamera.fieldOfView, scopeFOV, Time.deltaTime * 10f);
         }
         else
         {
             isSniperMode = false;
-            fpsCamera.fieldOfView = Mathf.Lerp(fpsCamera.fieldOfView, defaultFOV, Time.deltaTime * zoomSpeed);
+            fpsCamera.fieldOfView = Mathf.Lerp(fpsCamera.fieldOfView, defaultFOV, Time.deltaTime * 10f);
         }
         if (scopeOverlay != null) scopeOverlay.SetActive(isSniperMode);
 
-        // ==================================================================
-        // 소리 반복 재생 로직
-        // ==================================================================
-        
-        //bool isTryingToShoot = Input.GetKey(KeyCode.A) && currentAmmo > 0;
-        bool isTryingToShoot = Input.GetMouseButton(0) && currentAmmo > 0;
-        if (isTryingToShoot)
-        {
-            // 발사 소리 세팅 및 재생
-            if (!audioSource.isPlaying || audioSource.clip != fireSound)
-            {
-                audioSource.clip = fireSound; 
-                audioSource.loop = true;      
-                audioSource.Play();           
-            }
+        // =========================================================
+        // 3. 발사 입력 감지 및 사운드 처리 (여기가 핵심 수정!)
+        // =========================================================
+        bool triggerPulled = false;
 
-            // 실제 발사 로직
-            if (Time.time >= nextFireTime) Shoot();
+        if (currentGun.isAutomatic)
+        {
+            // [연사 모드: Kriss]
+            // 마우스를 누르고 있고 && 총알이 있을 때
+            bool isFiring = Input.GetMouseButton(0) && currentGun.currentAmmo > 0;
+            triggerPulled = isFiring;
+
+            // --- 연사 사운드 로직 (Loop & Stop) ---
+            if (isFiring)
+            {
+                // 소리가 안 나고 있거나, 다른 소리가 나고 있다면 -> 연사 소리 재생 시작
+                if (!audioSource.isPlaying || audioSource.clip != currentGun.fireSound)
+                {
+                    audioSource.clip = currentGun.fireSound;
+                    audioSource.loop = true; // 반복 재생 켜기
+                    audioSource.Play();
+                }
+            }
+            else
+            {
+                // 쏘고 있지 않은데, 지금 울리는 소리가 '총소리'라면 -> 뚝 끊기
+                if (audioSource.isPlaying && audioSource.clip == currentGun.fireSound)
+                {
+                    audioSource.Stop();
+                    audioSource.loop = false; // 반복 끄기
+                    audioSource.clip = null;
+                }
+            }
         }
         else
         {
-            // 현재 재생 중이고, 그 소리가 '총 소리'라면 멈춥니다.
-            if (audioSource.isPlaying && audioSource.clip == fireSound)
+            // [단발 모드: Glock, Mark]
+            // 누르는 순간 한 번만 true
+            triggerPulled = Input.GetMouseButtonDown(0);
+        }
+
+        // 4. 실제 발사 (총알 감소, 반동, 데미지)
+        if (triggerPulled && Time.time >= nextFireTime)
+        {
+            if (currentGun.currentAmmo > 0)
             {
-                audioSource.loop = false; 
-                audioSource.Stop();       
-                
-                audioSource.clip = null; 
+                Shoot();
             }
         }
 
-        // 재장전
-        if (Input.GetKeyDown(KeyCode.R)) {
-            controller_gun_kriss.SetTrigger("OnReload");
-            
-            // 장전 소리 재생
-            if(reloadSound != null) 
+        // 5. 재장전
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            // 연사 중에 재장전하면 총소리 끊어줘야 함
+            if(audioSource.clip == currentGun.fireSound)
             {
-                // 혹시 총쏘던 중이면 확실히 끄고
-                if(audioSource.clip == fireSound)
-                {
-                    audioSource.Stop();
-                    audioSource.loop = false;
-                    audioSource.clip = null; // 여기서도 클립 초기화
-                }
-                
-                // 장전 소리 재생 (PlayOneShot은 clip 변수를 바꾸지 않음)
-                audioSource.PlayOneShot(reloadSound);
+                audioSource.Stop();
+                audioSource.loop = false;
+                audioSource.clip = null;
             }
 
-            currentAmmo = maxAmmo;
+            if(currentGun.gunAnimator != null) currentGun.gunAnimator.SetTrigger("OnReload");
+            
+            // 재장전 소리는 PlayOneShot으로 (끊기지 않게)
+            if (currentGun.reloadSound != null) audioSource.PlayOneShot(currentGun.reloadSound);
+            
+            currentGun.Reload();
         }
         
-        if (Input.GetKeyDown(KeyCode.C)) controller_gun_kriss.SetTrigger("OnHiding");
-        if (Input.GetKeyDown(KeyCode.D)) controller_gun_kriss.SetTrigger("OnDraw");
+        if (Input.GetKeyDown(KeyCode.C) && currentGun.gunAnimator != null) 
+            currentGun.gunAnimator.SetTrigger("OnHiding");
+    }
+
+    void SwapWeapon(int index)
+    {
+        if (index < 0 || index >= allGuns.Length) return;
+        if (currentGun == allGuns[index]) return;
+
+        // 무기 바꿀 때 기존 총소리가 나고 있다면 끄기
+        if (audioSource.isPlaying && currentGun != null && audioSource.clip == currentGun.fireSound)
+        {
+            audioSource.Stop();
+            audioSource.loop = false;
+            audioSource.clip = null;
+        }
+
+        for (int i = 0; i < allGuns.Length; i++)
+        {
+            allGuns[i].gameObject.SetActive(false);
+        }
+
+        allGuns[index].gameObject.SetActive(true);
+        currentGun = allGuns[index];
     }
 
     void Shoot()
     {
-        // 1. 발사 처리
-        nextFireTime = Time.time + fireRate;
-        if(controller_gun_kriss) controller_gun_kriss.SetTrigger("OnShoot");
-        if (weaponRecoil != null)
-        {
-            weaponRecoil.RecoilFire();
-        }
-        if (cameraRecoil != null)
-        {
-            cameraRecoil.RecoilFire(isSniperMode);
-        }
-        currentAmmo--;
+        nextFireTime = Time.time + currentGun.fireRate;
+        currentGun.currentAmmo--;
 
-        // 2. 레이(Ray) 생성
-        Ray ray;
-        if (isSniperMode)
+        if (currentGun.gunAnimator != null) 
         {
-            // 스코프 모드: 카메라 중앙
-            ray = fpsCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            currentGun.gunAnimator.SetTrigger("OnShoot");
+        }
+
+        // [핵심 수정] 사운드 재생 분기
+        if (currentGun.isAutomatic)
+        {
+            // 연사 총은 Update()에서 Loop로 소리를 켜고 끄므로
+            // 여기서 PlayOneShot을 하면 소리가 중첩됨. -> 아무것도 안 함!
         }
         else
         {
-            // 일반 모드: 총구 방향
-            ray = new Ray(firePoint.position, firePoint.forward);
+            // 단발 총은 여기서 한 발씩 재생 (PlayOneShot)
+            if (currentGun.fireSound != null) audioSource.PlayOneShot(currentGun.fireSound);
         }
 
-        RaycastHit hit;
-        
-        // 3. 레이캐스트 발사 (핵심 수정!)
-        // ~0 : 모든 레이어 충돌 허용
-        // LayerMask.GetMask("Player") : "Player"라는 이름의 레이어만 가져옴
-        // ~LayerMask.GetMask("Player") : "Player" 레이어만 빼고 다 충돌
-        // ※ 주의: 플레이어 오브젝트의 Layer가 반드시 "Player"로 설정되어 있어야 함!
-        int layerMask = ~LayerMask.GetMask("Player"); 
-
-        if (Physics.Raycast(ray, out hit, range, layerMask))
+        // 반동 및 레이캐스트 (기존 동일)
+        if (weaponRecoil != null) weaponRecoil.RecoilFire();
+        if (cameraRecoil != null)
         {
-            // [디버그] 맞은 곳까지 빨간 선 그리기 (여기서 끊겨야 정상)
-            Debug.DrawLine(ray.origin, hit.point, Color.red, 2.0f);
-            Debug.Log("🎯 맞은 물체: " + hit.collider.name + " / 태그: " + hit.collider.tag);
+            cameraRecoil.RecoilRotation = currentGun.recoilRotation;
+            cameraRecoil.AimRecoilRotation = currentGun.aimRecoilRotation;
+            cameraRecoil.RecoilFire(isSniperMode);
+        }
 
-            // 부위별 판정
+        Ray ray;
+        if (isSniperMode) ray = fpsCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        else ray = new Ray(currentGun.firePoint.position, currentGun.firePoint.forward);
+
+        RaycastHit hit;
+        int layerMask = ~LayerMask.GetMask("Player");
+
+        if (Physics.Raycast(ray, out hit, currentGun.range, layerMask))
+        {
             ZombieBodyPart bodyPart = hit.collider.GetComponent<ZombieBodyPart>();
-            if (bodyPart != null)
-            {
-                bodyPart.OnHit(damage);
-            }
+            if (bodyPart != null) bodyPart.OnHit(currentGun.damage);
             else
             {
                 ShootZombie target = hit.transform.GetComponent<ShootZombie>();
                 if (target == null) target = hit.transform.GetComponentInParent<ShootZombie>();
-                if (target != null) target.TakeDamage(damage);
+                if (target != null) target.TakeDamage(currentGun.damage);
             }
-        }
-        else
-        {
-            // [디버그] 허공을 갈랐을 때 (최대 사거리까지 선 그리기)
-            Debug.DrawRay(ray.origin, ray.direction * range, Color.yellow, 2.0f);
-            Debug.Log("❌ 허공을 쏨 (또는 충돌체 인식 실패)");
         }
     }
 }
