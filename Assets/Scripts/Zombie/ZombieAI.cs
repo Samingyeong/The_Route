@@ -115,11 +115,6 @@ public class ZombieAI : MonoBehaviour
     private float idleSoundTimer;
     private float idleSoundInterval;
     
-    // [디버깅] 디버그 로그 출력 제어
-    [Header("=== 디버깅 ===")]
-    [SerializeField] private bool enableAttackDebug = true;
-    [SerializeField] private int debugLogInterval = 60; // 프레임 간격 (60프레임 = 약 1초)
-    
     void Start()
     {
         // Player 자동 찾기
@@ -158,7 +153,6 @@ public class ZombieAI : MonoBehaviour
         
         if (navAgent == null)
         {
-            Debug.LogError("ZombieAI: NavMeshAgent를 찾을 수 없습니다!");
             enabled = false;
             return;
         }
@@ -271,12 +265,7 @@ public class ZombieAI : MonoBehaviour
             // 랜덤 뽑기
             AttackType previousAttackType = currentAttackType;
             currentAttackType = availableAttackTypes[Random.Range(0, availableAttackTypes.Length)];
-            
-            // [디버깅] 공격 타입 변경
-            if (enableAttackDebug)
-            {
-                Debug.Log($"[ZombieAI] 공격 타입 변경: {previousAttackType} -> {currentAttackType} (값: {(int)currentAttackType})");
-            }
+                       
         }
     }
     
@@ -422,6 +411,7 @@ public class ZombieAI : MonoBehaviour
             }
         }
     }
+    
     void EnterState(ZombieState state)
     {
         if (navAgent == null || !navAgent.enabled || !navAgent.isOnNavMesh) return;
@@ -461,24 +451,10 @@ public class ZombieAI : MonoBehaviour
                     // AttackType을 상태 진입 시에만 설정
                     if (useRandomAttacks && hasAttackTypeParameter && animator != null)
                     {
-                        
-                        
-                        
                         int attackTypeValue = (int)currentAttackType;
                         animator.SetInteger("AttackType", attackTypeValue);
-                        Debug.Log($"[ZombieAI] Attack 상태 진입 - AttackType 설정 (Int): {currentAttackType} = {attackTypeValue}");
                         lastSetAttackType = currentAttackType;
                     }
-                    else if (enableAttackDebug)
-                    {
-                        // [디버깅] AttackType 설정 실패
-                        Debug.LogWarning($"[ZombieAI] Attack 상태 진입 - AttackType 설정 실패 | useRandomAttacks: {useRandomAttacks}, hasAttackTypeParameter: {hasAttackTypeParameter}, animator: {animator != null}");
-                    }
-                }
-                else if (state == ZombieState.Attack && isCrawlingMode && enableAttackDebug)
-                {
-                    // [디버깅] 기어가기 공격 모드
-                    Debug.Log("[ZombieAI] Attack 상태 진입 - 기어가기 공격 모드");
                 }
                 break;
         }
@@ -560,14 +536,6 @@ public class ZombieAI : MonoBehaviour
                     // 공격 트리거 (Crawl -> CrawlBite 전환용)
                     animator.SetBool(animParamIsAttacking, true);
                     
-                    // [디버깅] 기어가기 공격
-                    if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
-                    {
-                        AnimatorStateInfo crawlStateInfo = animator.GetCurrentAnimatorStateInfo(0);
-                        Debug.Log($"[ZombieAI] 기어가기 공격 - State: {crawlStateInfo.fullPathHash}, NormalizedTime: {crawlStateInfo.normalizedTime:F2}");
-                    }
-                    
-                    // 기어가는 공격은 AttackType 파라미터를 건드리지 않음
                 }
                 else
                 {
@@ -580,19 +548,6 @@ public class ZombieAI : MonoBehaviour
                         
                         int attackTypeValue = (int)currentAttackType;
                         animator.SetInteger("AttackType", attackTypeValue);
-                        Debug.Log($"[ZombieAI] Attack 상태 진입 - AttackType 설정 (Int): {currentAttackType} = {attackTypeValue}");
-                            
-                        // [디버깅] AttackType 값 확인 (주기적으로)
-                        if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
-                        {
-                            int actualValue = animator.GetInteger(animParamAttackType);
-                            Debug.Log($"[ZombieAI] Attack 상태 진입 - AttackType 설정 (Int): {currentAttackType} = {attackTypeValue}");
-                            if (actualValue != attackTypeValue)
-                            {
-                                Debug.LogWarning($"[ZombieAI] AttackType 값 불일치! 설정: {attackTypeValue}, 실제: {actualValue}");
-                            }
-                        }
-                        
                         lastSetAttackType = currentAttackType;
                     }
                     
@@ -621,23 +576,11 @@ public class ZombieAI : MonoBehaviour
                             hasTriggeredAttack = false;
                             // IsAttacking을 false로 설정하여 애니메이션이 완전히 끝나도록 함
                             animator.SetBool(animParamIsAttacking, false);
-                            
-                            // [디버깅] 공격 애니메이션 종료 직전
-                            if (enableAttackDebug)
-                            {
-                                Debug.Log($"[ZombieAI] 공격 애니메이션 종료 직전 - Type: {currentAttackType}, State: {currentStateName}, NormalizedTime: {stateInfo.normalizedTime:F2}");
-                            }
                         }
                         else
                         {
                             // 애니메이션이 재생 중이면 IsAttacking을 false로 유지 (중단 방지)
                             animator.SetBool(animParamIsAttacking, false);
-                            
-                            // [디버깅] 공격 애니메이션 재생 중 (주기적 출력)
-                            if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
-                            {
-                                Debug.Log($"[ZombieAI] 공격 애니메이션 재생 중 - Type: {currentAttackType}, State: {currentStateName}, NormalizedTime: {stateInfo.normalizedTime:F2}, IsAttacking: {animator.GetBool(animParamIsAttacking)}");
-                            }
                         }
                     }
                     // 공격 애니메이션이 재생 중이 아니고, 트리거하지 않았으면 트리거
@@ -648,23 +591,8 @@ public class ZombieAI : MonoBehaviour
                         animator.SetBool(animParamIsAttacking, true);
                         hasTriggeredAttack = true;
                         
-                        // [디버깅] 공격 트리거
-                        if (enableAttackDebug)
-                        {
-                            string paramValue = isAttackTypeFloat ? 
-                                animator.GetFloat(animParamAttackType).ToString() : 
-                                animator.GetInteger(animParamAttackType).ToString();
-                            Debug.Log($"[ZombieAI] 공격 트리거! - Type: {currentAttackType}, AttackType 파라미터: {paramValue}, IsAttacking: {animator.GetBool(animParamIsAttacking)}");
-                        }
                     }
-                    else
-                    {
-                        // [디버깅] 공격 대기 중 (트리거는 했지만 아직 애니메이션이 시작되지 않음)
-                        if (enableAttackDebug && Time.frameCount % debugLogInterval == 0)
-                        {
-                            Debug.Log($"[ZombieAI] 공격 대기 중 - Type: {currentAttackType}, State: {currentStateName}, NormalizedTime: {stateInfo.normalizedTime:F2}, hasTriggeredAttack: {hasTriggeredAttack}");
-                        }
-                    }
+                    
                 }
                 break;
         }
@@ -787,24 +715,4 @@ public class ZombieAI : MonoBehaviour
         }
     }
     
-    // 디버그용 Gizmos
-    void OnDrawGizmosSelected()
-    {
-        if (playerTarget == null) return;
-        
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, idleDistance);
-        
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, walkDistance);
-        
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, runDistance);
-        
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackDistance);
-        
-        Gizmos.color = Color.white;
-        Gizmos.DrawLine(transform.position, playerTarget.position);
-    }
 }

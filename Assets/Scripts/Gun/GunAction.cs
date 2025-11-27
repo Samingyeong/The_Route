@@ -22,6 +22,10 @@ public class GunAction : MonoBehaviour
     public Animator controller_gun_kriss;
     public GameObject scopeOverlay;
 
+    [Header("Recoil System")]
+    public WeaponRecoil weaponRecoil;
+    public CameraRecoil cameraRecoil;
+
     // 소리 설정
     [Header("Sound Settings")]
     public AudioSource audioSource; 
@@ -32,6 +36,7 @@ public class GunAction : MonoBehaviour
     {
         if(fpsCamera != null) defaultFOV = fpsCamera.fieldOfView;
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        currentAmmo = maxAmmo;
     }
 
    void Update()
@@ -111,6 +116,14 @@ public class GunAction : MonoBehaviour
         // 1. 발사 처리
         nextFireTime = Time.time + fireRate;
         if(controller_gun_kriss) controller_gun_kriss.SetTrigger("OnShoot");
+        if (weaponRecoil != null)
+        {
+            weaponRecoil.RecoilFire();
+        }
+        if (cameraRecoil != null)
+        {
+            cameraRecoil.RecoilFire(isSniperMode);
+        }
         currentAmmo--;
 
         // 2. 레이(Ray) 생성

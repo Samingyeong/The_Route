@@ -22,6 +22,10 @@ public class gunaction_glock : MonoBehaviour
     public Animator controller_gun_glock; // 애니메이터 변수명 변경
     public GameObject scopeOverlay;
 
+    [Header("Recoil System")]
+    public WeaponRecoil weaponRecoil;
+    public CameraRecoil cameraRecoil;
+
     // 소리 설정
     [Header("Sound Settings")]
     public AudioSource audioSource; 
@@ -88,6 +92,15 @@ public class gunaction_glock : MonoBehaviour
 
         // 애니메이션 실행
         controller_gun_glock.SetTrigger("OnShoot");
+        if (weaponRecoil != null)
+        {
+            weaponRecoil.RecoilFire();
+        }
+        
+        if (cameraRecoil != null)
+        {
+            cameraRecoil.RecoilFire(isSniperMode);
+        }
         
         // 총알 감소
         currentAmmo--;
