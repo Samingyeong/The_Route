@@ -1538,6 +1538,8 @@ GameObject:
   - component: {fileID: 7069572930475751692}
   - component: {fileID: 3308070086241167180}
   - component: {fileID: 7874470628605020397}
+  - component: {fileID: -3510367179337237042}
+  - component: {fileID: -1125354070779222210}
   m_Layer: 0
   m_Name: Glock
   m_TagString: Untagged
@@ -1713,9 +1715,49 @@ MonoBehaviour:
   firePoint: {fileID: 5079528806562312839}
   controller_gun_glock: {fileID: 3308070086241167180}
   scopeOverlay: {fileID: 5659461271031897574}
+  weaponRecoil: {fileID: 0}
+  cameraRecoil: {fileID: 0}
   audioSource: {fileID: 7069572930475751692}
   fireSound: {fileID: 8300000, guid: 3bba5b42b613655449c59a4078b4d23b, type: 3}
   reloadSound: {fileID: 8300000, guid: 45919062440ec114b91ec9cbd9805853, type: 3}
+--- !u!65 &-3510367179337237042
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2176120004353524491}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-1125354070779222210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2176120004353524491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f72d5456dea3ae047b244018c89d9b1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemData: {fileID: 11400000, guid: ed73cc97e34186343b28d06eed188eeb, type: 2}
+  amount: 1
+  devionWindowName: Inventory
+  playerTag: Player
+  promptCanvas: {fileID: 0}
 --- !u!1 &2180310314821225232
 GameObject:
   m_ObjectHideFlags: 0

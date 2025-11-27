@@ -2117,6 +2117,8 @@ GameObject:
   - component: {fileID: 373648946435021142}
   - component: {fileID: 8504248459799215037}
   - component: {fileID: 5841920137488590836}
+  - component: {fileID: -8630256757543841065}
+  - component: {fileID: -6459936684805738085}
   m_Layer: 0
   m_Name: Kriss
   m_TagString: Untagged
@@ -2192,6 +2194,8 @@ MonoBehaviour:
   firePoint: {fileID: 8520665206565908055}
   controller_gun_kriss: {fileID: 373648946435021142}
   scopeOverlay: {fileID: 8330729579004287177}
+  weaponRecoil: {fileID: 0}
+  cameraRecoil: {fileID: 0}
   audioSource: {fileID: 5841920137488590836}
   fireSound: {fileID: 8300000, guid: 82d222a5db48e86449121679d1f371d1, type: 3}
   reloadSound: {fileID: 8300000, guid: 16ee1fddf6f48814d9db64634319836b, type: 3}
@@ -2292,6 +2296,44 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!65 &-8630256757543841065
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8362902140208096012}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-6459936684805738085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8362902140208096012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f72d5456dea3ae047b244018c89d9b1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemData: {fileID: 11400000, guid: 6998c441c8e5f784bb6178b3d30a997e, type: 2}
+  amount: 1
+  devionWindowName: Inventory
+  playerTag: Player
+  promptCanvas: {fileID: 0}
 --- !u!1 &8578703177979237826
 GameObject:
   m_ObjectHideFlags: 0
