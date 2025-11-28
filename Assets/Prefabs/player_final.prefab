@@ -1789,6 +1789,7 @@ MonoBehaviour:
   firePoint: {fileID: 7183333048150074963}
   fireSound: {fileID: 8300000, guid: 82d222a5db48e86449121679d1f371d1, type: 3}
   reloadSound: {fileID: 8300000, guid: 16ee1fddf6f48814d9db64634319836b, type: 3}
+  muzzleFlashParticles: {fileID: 0}
 --- !u!1 &1579208199310865728
 GameObject:
   m_ObjectHideFlags: 0
@@ -10876,6 +10877,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5247109159954778958}
     m_Modifications:
+    - target: {fileID: 177951328874119911, guid: 0f449781ebf48ac4e9a6f38732883db8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 5976520062399184996, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
+    - target: {fileID: 177951328874119911, guid: 0f449781ebf48ac4e9a6f38732883db8, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1290793285084690850, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
     - target: {fileID: 3970379846091368463, guid: 0f449781ebf48ac4e9a6f38732883db8, type: 3}
       propertyPath: m_Name
       value: Mark23
@@ -10997,6 +11006,7 @@ MonoBehaviour:
   firePoint: {fileID: 7218466804978255590}
   fireSound: {fileID: 8300000, guid: 0e903db20f0f5ad43a0192d5b963d2c5, type: 3}
   reloadSound: {fileID: 8300000, guid: bac5742f27ba42b4687ad23ee33d3970, type: 3}
+  muzzleFlashParticles: {fileID: 0}
 --- !u!114 &3395463339257578297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11025,6 +11035,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Glock
       objectReference: {fileID: 0}
+    - target: {fileID: 2977845002030532086, guid: c0ddbd791af6bdb42802107977041012, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 5976520062399184996, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
+    - target: {fileID: 2977845002030532086, guid: c0ddbd791af6bdb42802107977041012, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1290793285084690850, guid: 437190f99ece8c84aa0435e4f2feb9c9, type: 3}
     - target: {fileID: 8935818495567118847, guid: c0ddbd791af6bdb42802107977041012, type: 3}
       propertyPath: m_LocalScale.x
       value: 4
@@ -11139,6 +11157,7 @@ MonoBehaviour:
   firePoint: {fileID: 4193883117799236322}
   fireSound: {fileID: 8300000, guid: 45919062440ec114b91ec9cbd9805853, type: 3}
   reloadSound: {fileID: 8300000, guid: fb476a9470598f545a1ad1cbb3f3bc6f, type: 3}
+  muzzleFlashParticles: {fileID: 0}
 --- !u!114 &7917792899770036486
 MonoBehaviour:
   m_ObjectHideFlags: 0

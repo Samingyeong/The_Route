@@ -159,6 +159,13 @@ public class GunAction : MonoBehaviour
 
         if (currentGun.gunAnimator != null) currentGun.gunAnimator.SetTrigger("OnShoot");
 
+        if (currentGun.muzzleFlashParticles != null)
+        {
+            // 빠른 연사 시 이전 파티클이 남아있으면 어색할 수 있으므로,
+            // 강제로 멈추고 깨끗이 비운 뒤 다시 재생합니다.
+            currentGun.muzzleFlashParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            currentGun.muzzleFlashParticles.Play();
+        }
         // 사운드
         if (!currentGun.isAutomatic)
         {

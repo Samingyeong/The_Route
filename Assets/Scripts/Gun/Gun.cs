@@ -31,6 +31,9 @@ public class Gun : MonoBehaviour
     public Transform firePoint;     
     public AudioClip fireSound;
     public AudioClip reloadSound;
+    
+    [Tooltip("이 총의 자식으로 있는 머즐 플래시 파티클 시스템을 연결하세요.")]
+    public ParticleSystem muzzleFlashParticles;
 
     void OnEnable()
     {
