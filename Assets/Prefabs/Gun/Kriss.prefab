@@ -2181,24 +2181,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1b055ec3d81a2f40ac65c5510ecf9b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxAmmo: 25
-  currentAmmo: 0
-  fireRate: 0.7
-  damage: 20
-  range: 100
-  isSniperMode: 0
-  defaultFOV: 60
-  scopeFOV: 20
-  zoomSpeed: 10
+  allGuns: []
   fpsCamera: {fileID: 0}
-  firePoint: {fileID: 8520665206565908055}
-  controller_gun_kriss: {fileID: 373648946435021142}
-  scopeOverlay: {fileID: 8330729579004287177}
   weaponRecoil: {fileID: 0}
   cameraRecoil: {fileID: 0}
   audioSource: {fileID: 5841920137488590836}
-  fireSound: {fileID: 8300000, guid: 82d222a5db48e86449121679d1f371d1, type: 3}
-  reloadSound: {fileID: 8300000, guid: 16ee1fddf6f48814d9db64634319836b, type: 3}
+  scopeOverlay: {fileID: 8330729579004287177}
+  defaultFOV: 60
+  scopeFOV: 20
+  isSniperMode: 0
 --- !u!82 &5841920137488590836
 AudioSource:
   m_ObjectHideFlags: 0
