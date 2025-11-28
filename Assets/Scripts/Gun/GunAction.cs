@@ -210,11 +210,53 @@ public class GunAction : MonoBehaviour
             cameraRecoil.RecoilFire(isSniperMode);
         }
 
-        // 레이캐스트 (기존 동일)
-        Ray ray;
-        if (isSniperMode) ray = fpsCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        else ray = new Ray(currentGun.firePoint.position, currentGun.firePoint.forward);
+        // // 레이캐스트 (기존 동일)
+        // Ray ray;
+        // if (isSniperMode) ray = fpsCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        // else ray = new Ray(currentGun.firePoint.position, currentGun.firePoint.forward);
 
+        // 1. 화면 정중앙(조준점)이 가리키는 실제 월드 좌표 찾기
+        Ray ray = fpsCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        RaycastHit hit;
+        Vector3 targetPoint;
+
+        // 화면 중앙에서 레이를 쏘아 부딪힌 곳이 목표지점
+        // (사거리 제한 없이 멀리 체크하기 위해 큰 숫자 사용)
+        if (Physics.Raycast(ray, out hit, 1000f)) 
+        {
+            targetPoint = hit.point;
+        }
+        else
+        {
+            // 허공을 보고 있다면 레이의 끝부분을 목표로 설정
+            targetPoint = ray.GetPoint(1000f); 
+        }
+
+        // 2. 총구(FirePoint)에서 목표지점(TargetPoint)으로 가는 방향 계산
+        Vector3 direction = (targetPoint - currentGun.firePoint.position).normalized;
+
+        // 3. 총알 생성
+        GameObject currentBullet = Instantiate(currentGun.bulletPrefab, currentGun.firePoint.position, Quaternion.identity);
+        
+        // 4. 총알 방향 정렬 (총알 모델이 앞을 보게)
+        currentBullet.transform.forward = direction;
+
+        // 5. 총알 스크립트에 데미지 정보 전달
+        Bullet bulletScript = currentBullet.GetComponent<Bullet>();
+        if(bulletScript != null)
+        {
+            bulletScript.damage = currentGun.damage;
+        }
+
+        // 6. 물리 힘 가하기 (발사!)
+        Rigidbody bulletRb = currentBullet.GetComponent<Rigidbody>();
+        if(bulletRb != null)
+        {
+            // ForceMode.Impulse는 순간적인 힘을 가할 때 적합
+            // 탄속(muzzleVelocity)을 곱해줍니다.
+            bulletRb.AddForce(direction * currentGun.muzzleVelocity, ForceMode.Impulse); 
+        }
+        /*
         RaycastHit hit;
         int layerMask = ~LayerMask.GetMask("Player");
 
@@ -229,5 +271,6 @@ public class GunAction : MonoBehaviour
                 if (target != null) target.TakeDamage(currentGun.damage);
             }
         }
+        */
     }
 }
