@@ -56,54 +56,58 @@ public class GunAction : MonoBehaviour
         }
         if (scopeOverlay != null) scopeOverlay.SetActive(isSniperMode);
 
-        // =========================================================
-        // 3. 발사 입력 감지 및 사운드 처리 (여기가 핵심 수정!)
-        // =========================================================
+        if (Input.GetMouseButtonDown(0) && currentGun.currentAmmo <= 0)
+        {
+            // 빈 격발 소리 재생
+            if (currentGun.dryFireSound != null)
+            {
+                audioSource.PlayOneShot(currentGun.dryFireSound);
+            }
+            // 여기서 return을 해버리면 아래 발사 로직으로 넘어가지 않으므로
+            // 애니메이션도 실행되지 않습니다.
+            return; 
+        }
+
+        // B. 실제 발사 로직
         bool triggerPulled = false;
 
         if (currentGun.isAutomatic)
         {
-            // [연사 모드: Kriss]
-            // 마우스를 누르고 있고 && 총알이 있을 때
+            // 연사 모드: 마우스 누르고 있고 && 총알이 있어야 함
             bool isFiring = Input.GetMouseButton(0) && currentGun.currentAmmo > 0;
             triggerPulled = isFiring;
 
-            // --- 연사 사운드 로직 (Loop & Stop) ---
+            // --- 연사 사운드 (Loop) ---
             if (isFiring)
             {
-                // 소리가 안 나고 있거나, 다른 소리가 나고 있다면 -> 연사 소리 재생 시작
                 if (!audioSource.isPlaying || audioSource.clip != currentGun.fireSound)
                 {
                     audioSource.clip = currentGun.fireSound;
-                    audioSource.loop = true; // 반복 재생 켜기
+                    audioSource.loop = true;
                     audioSource.Play();
                 }
             }
             else
             {
-                // 쏘고 있지 않은데, 지금 울리는 소리가 '총소리'라면 -> 뚝 끊기
                 if (audioSource.isPlaying && audioSource.clip == currentGun.fireSound)
                 {
                     audioSource.Stop();
-                    audioSource.loop = false; // 반복 끄기
+                    audioSource.loop = false;
                     audioSource.clip = null;
                 }
             }
         }
         else
         {
-            // [단발 모드: Glock, Mark]
-            // 누르는 순간 한 번만 true
-            triggerPulled = Input.GetMouseButtonDown(0);
+            // 단발 모드: 누르는 순간 && 총알이 있어야 함
+            // (총알 없으면 위에서 이미 빈 격발 처리하고 return 되었음)
+            triggerPulled = Input.GetMouseButtonDown(0) && currentGun.currentAmmo > 0;
         }
 
-        // 4. 실제 발사 (총알 감소, 반동, 데미지)
+        // 4. 발사 실행 (Shoot 함수 호출)
         if (triggerPulled && Time.time >= nextFireTime)
         {
-            if (currentGun.currentAmmo > 0)
-            {
-                Shoot();
-            }
+            Shoot();
         }
 
         // 5. 재장전
@@ -117,10 +121,11 @@ public class GunAction : MonoBehaviour
                 audioSource.clip = null;
             }
 
+            // 애니메이션 실행 (이제 소리는 여기서 안 냄!)
             if(currentGun.gunAnimator != null) currentGun.gunAnimator.SetTrigger("OnReload");
             
-            // 재장전 소리는 PlayOneShot으로 (끊기지 않게)
-            if (currentGun.reloadSound != null) audioSource.PlayOneShot(currentGun.reloadSound);
+            // [삭제됨] 여기서 즉시 소리 재생하던 코드 삭제
+            // if (currentGun.reloadSound != null) audioSource.PlayOneShot(currentGun.reloadSound);
             
             currentGun.Reload();
         }
@@ -158,6 +163,13 @@ public class GunAction : MonoBehaviour
 
         if (currentGun.gunAnimator != null) currentGun.gunAnimator.SetTrigger("OnShoot");
 
+        if (currentGun.muzzleFlashParticles != null)
+        {
+            // 빠른 연사 시 이전 파티클이 남아있으면 어색할 수 있으므로,
+            // 강제로 멈추고 깨끗이 비운 뒤 다시 재생합니다.
+            currentGun.muzzleFlashParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            currentGun.muzzleFlashParticles.Play();
+        }
         // 사운드
         if (!currentGun.isAutomatic)
         {
