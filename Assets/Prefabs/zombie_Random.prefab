@@ -1522,28 +1522,18 @@ MonoBehaviour:
   walkDistance: 12
   runDistance: 8
   attackDistance: 2.5
+  attackMaintainDistance: 3
   walkSpeed: 2.5
   runSpeed: 4.5
-  enableRandomness: 0
-  pauseProbability: 0.3
-  pauseDuration: 1.5
-  speedBoostProbability: 0.2
-  speedBoostDuration: 0.5
-  speedBoostMultiplier: 1.5
-  searchProbability: 0.4
-  searchDuration: 3
-  searchRotationSpeed: 60
-  searchDetectionRange: 15
-  animParamSpeed: Speed
+  crawlSpeed: 3
   animParamIsWalking: IsWalking
   animParamIsRunning: IsRunning
   animParamIsAttacking: IsAttacking
+  animParamIsCrawling: IsCrawling
   animParamAttackType: AttackType
   animParamIdleType: IdleType
   useRandomIdleTypes: 1
-  idleChangeInterval: 5
   availableIdleTypes: 00000000010000000200000003000000040000000500000006000000
-  useAttackTypeParameter: 1
   useRandomAttacks: 1
   availableAttackTypes: 0000000001000000020000000300000004000000
 --- !u!1 &3791627943300664711

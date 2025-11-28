@@ -28,6 +28,10 @@ public class ShootZombie : MonoBehaviour
     public GameObject keyPrefab;
     // 열쇠 드랍 확률 (0.1 = 10%)
     public float keyDropChance = 0.1f; // 10% 드랍으로 재설정
+    
+    // 붕대 프리팹 및 드랍 확률
+    public GameObject bandagePrefab;
+    public float bandageDropChance = 0.3f; // 30% 드랍 확률
 
     private Animator animator;
     private Collider mainCollider;
@@ -214,6 +218,14 @@ public class ShootZombie : MonoBehaviour
             Instantiate(keyPrefab, transform.position, Quaternion.identity);
             Debug.Log("🎉 열쇠를 드랍했습니다! (확률: 10%)");
         }
+
+        // 👇👇👇 붕대 드랍 로직 (30% 확률) 👇👇👇
+        if (bandagePrefab != null && Random.value < bandageDropChance)
+        {
+            Instantiate(bandagePrefab, transform.position, Quaternion.identity);
+            Debug.Log($"🎉 붕대를 드랍했습니다! (확률: {bandageDropChance * 100}%)");
+        }
+        // 👆👆👆 붕대 드랍 로직 👆👆👆
 
         // 5초 후 게임 오브젝트 파괴
         Destroy(gameObject, 5f);

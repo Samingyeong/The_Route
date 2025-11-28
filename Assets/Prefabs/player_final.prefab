@@ -1789,6 +1789,7 @@ MonoBehaviour:
   firePoint: {fileID: 7183333048150074963}
   fireSound: {fileID: 8300000, guid: 82d222a5db48e86449121679d1f371d1, type: 3}
   reloadSound: {fileID: 8300000, guid: 16ee1fddf6f48814d9db64634319836b, type: 3}
+  dryFireSound: {fileID: 0}
   muzzleFlashParticles: {fileID: 0}
 --- !u!1 &1579208199310865728
 GameObject:
@@ -7053,6 +7054,7 @@ GameObject:
   - component: {fileID: 6374003448621339881}
   - component: {fileID: 5194204346128794235}
   - component: {fileID: 6727122706775464683}
+  - component: {fileID: -2426822780327854452}
   m_Layer: 0
   m_Name: player_final
   m_TagString: Player
@@ -7310,6 +7312,21 @@ MonoBehaviour:
   defaultFOV: 60
   scopeFOV: 30
   isSniperMode: 0
+--- !u!114 &-2426822780327854452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5678755740227543511}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ee3f9d8286dfd44fa2110a77665ec99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healAmount: 10
+  windowName: Inventory
+  bandageItemName: Bandage
 --- !u!1 &5763714777219923489
 GameObject:
   m_ObjectHideFlags: 0
@@ -11006,6 +11023,7 @@ MonoBehaviour:
   firePoint: {fileID: 7218466804978255590}
   fireSound: {fileID: 8300000, guid: 0e903db20f0f5ad43a0192d5b963d2c5, type: 3}
   reloadSound: {fileID: 8300000, guid: bac5742f27ba42b4687ad23ee33d3970, type: 3}
+  dryFireSound: {fileID: 0}
   muzzleFlashParticles: {fileID: 0}
 --- !u!114 &3395463339257578297
 MonoBehaviour:
@@ -11157,6 +11175,7 @@ MonoBehaviour:
   firePoint: {fileID: 4193883117799236322}
   fireSound: {fileID: 8300000, guid: 45919062440ec114b91ec9cbd9805853, type: 3}
   reloadSound: {fileID: 8300000, guid: fb476a9470598f545a1ad1cbb3f3bc6f, type: 3}
+  dryFireSound: {fileID: 0}
   muzzleFlashParticles: {fileID: 0}
 --- !u!114 &7917792899770036486
 MonoBehaviour:
