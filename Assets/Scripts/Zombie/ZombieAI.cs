@@ -339,6 +339,9 @@ public class ZombieAI : MonoBehaviour
         isCrawlingMode = true;
     }
 
+    // [추가] 외부에서 기어가기 모드인지 확인할 수 있는 프로퍼티
+    public bool IsCrawling => isCrawlingMode;
+
     void FixedUpdate()
     {
         // NavMeshAgent 위치 동기화

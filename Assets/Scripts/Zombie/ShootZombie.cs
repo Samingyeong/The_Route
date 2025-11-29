@@ -97,12 +97,18 @@ public class ShootZombie : MonoBehaviour
         }
         else
         {
-            if (animator != null) animator.SetTrigger("OnHit");
-            
-            // [수정] AI에게 멈출 시간(hitStunDuration)을 전달
-            if (zombieAI != null) 
+            // [수정] 기어가는 중(IsCrawling)이면 피격 반응 무시 (벌떡 일어남 방지)
+            bool isCrawling = (zombieAI != null && zombieAI.IsCrawling);
+
+            if (!isCrawling)
             {
-                zombieAI.SetHit(hitStunDuration);
+                if (animator != null) animator.SetTrigger("OnHit");
+                
+                // [수정] AI에게 멈출 시간(hitStunDuration)을 전달
+                if (zombieAI != null) 
+                {
+                    zombieAI.SetHit(hitStunDuration);
+                }
             }
 
             if (currentHp <= crawlHpThreshold && !hasDecidedCrawl)
