@@ -1,43 +1,48 @@
 using UnityEngine;
+using DevionGames.InventorySystem; // Devion ì¸ë²¤í† ë¦¬ ì‚¬ìš©
 
-// ÀÌ ½ºÅ©¸³Æ®´Â Â÷·®(Jeep)¿¡ ºÎÂøµË´Ï´Ù.
+// ì´ ìŠ¤í¬ë¦½íŠ¸ëŠ” ì°¨ëŸ‰(Jeep)ì— ë¶€ì°©ë©ë‹ˆë‹¤.
 public class VehicleEntryExitManager : MonoBehaviour
 {
-    // Â÷·® Á¦¾î ½ºÅ©¸³Æ®
+    // ì°¨ëŸ‰ ì œì–´ ìŠ¤í¬ë¦½íŠ¸
     private VehicleController vehicleController;
 
-    [Header("Â÷·® Å¾½Â ¼³Á¤")]
-    // ÇÏÂ÷ ½Ã ÇÃ·¹ÀÌ¾î°¡ ½ºÆùµÉ À§Ä¡ÀÇ TransformÀ» ¿©±â¿¡ ¿¬°áÇÕ´Ï´Ù.
+    [Header("ì°¨ëŸ‰ íƒ‘ìŠ¹ ì„¤ì •")]
+    // í•˜ì°¨ ì‹œ í”Œë ˆì´ì–´ê°€ ìŠ¤í°ë  ìœ„ì¹˜ì˜ Transformì„ ì—¬ê¸°ì— ì—°ê²°í•©ë‹ˆë‹¤.
     public Transform playerExitPoint;
 
-    // Â÷·®¿¡ ºÎÂøµÈ Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ®¸¦ Á÷Á¢ Á¦¾îÇÏ±â À§ÇÑ º¯¼ö
+    // ì°¨ëŸ‰ì— ë¶€ì°©ëœ ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ë¥¼ ì§ì ‘ ì œì–´í•˜ê¸° ìœ„í•œ ë³€ìˆ˜
     private Camera vehicleCam;
 
-    // ÇÃ·¹ÀÌ¾îÀÇ ¸ŞÀÎ Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ® (ÇÏÂ÷ ÈÄ È°¼ºÈ­¸¦ À§ÇØ ÂüÁ¶ ÇÊ¿ä)
+    // í”Œë ˆì´ì–´ì˜ ë©”ì¸ ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ (í•˜ì°¨ í›„ í™œì„±í™”ë¥¼ ìœ„í•´ ì°¸ì¡° í•„ìš”)
     private Camera playerCam;
 
-    private GameObject currentPlayer; // ÇöÀç Å¾½Â ÁßÀÎ ÇÃ·¹ÀÌ¾î °´Ã¼
-    private bool isOccupied = false; // ÇöÀç Å¾½Â ¿©ºÎ
+    private GameObject currentPlayer; // í˜„ì¬ íƒ‘ìŠ¹ ì¤‘ì¸ í”Œë ˆì´ì–´ ê°ì²´
+    private bool isOccupied = false;  // í˜„ì¬ íƒ‘ìŠ¹ ì—¬ë¶€
+
+    [Header("ì°¨ í‚¤ ì„¤ì •")]
+    [SerializeField] private string keyItemName = "Car Key";      // ì¸ë²¤í† ë¦¬ì— ìˆëŠ” ì°¨ í‚¤ ì•„ì´í…œ DisplayName
+    [SerializeField] private string inventoryWindowName = "Inventory"; // í‚¤ê°€ ë“¤ì–´ìˆëŠ” ì¸ë²¤í† ë¦¬ ì°½ ì´ë¦„
 
     void Awake()
     {
-        // 1. VehicleController ÄÄÆ÷³ÍÆ® ÂüÁ¶
+        // 1. VehicleController ì»´í¬ë„ŒíŠ¸ ì°¸ì¡°
         vehicleController = GetComponent<VehicleController>();
 
-        // 2. Â÷·® Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ® ÂüÁ¶
-        // VehicleControllerÀÇ public º¯¼ö vehicleCamera (Transform)¿¡¼­ Camera ÄÄÆ÷³ÍÆ®¸¦ °¡Á®¿É´Ï´Ù.
+        // 2. ì°¨ëŸ‰ ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ ì°¸ì¡°
+        // VehicleControllerì˜ public ë³€ìˆ˜ vehicleCamera (Transform)ì—ì„œ Camera ì»´í¬ë„ŒíŠ¸ë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤.
         if (vehicleController != null && vehicleController.vehicleCamera != null)
         {
             vehicleCam = vehicleController.vehicleCamera.GetComponent<Camera>();
         }
 
-        // ½ÃÀÛ ½Ã VehicleController ºñÈ°¼ºÈ­
+        // ì‹œì‘ ì‹œ VehicleController ë¹„í™œì„±í™”
         if (vehicleController != null)
         {
             vehicleController.enabled = false;
         }
 
-        // ½ÃÀÛ ½Ã Â÷·® Ä«¸Ş¶ó ºñÈ°¼ºÈ­ (ÇÃ·¹ÀÌ¾î Ä«¸Ş¶ó°¡ ·»´õ¸µÇÏµµ·Ï)
+        // ì‹œì‘ ì‹œ ì°¨ëŸ‰ ì¹´ë©”ë¼ ë¹„í™œì„±í™” (í”Œë ˆì´ì–´ ì¹´ë©”ë¼ê°€ ë Œë”ë§í•˜ë„ë¡)
         if (vehicleCam != null)
         {
             vehicleCam.enabled = false;
@@ -46,30 +51,60 @@ public class VehicleEntryExitManager : MonoBehaviour
 
     void Update()
     {
-        // 'E' Å° ÀÔ·Â °¨Áö
+        // 'E' í‚¤ ì…ë ¥ ê°ì§€
         if (Input.GetKeyDown(KeyCode.E))
         {
             if (isOccupied)
             {
-                // **1. ÇöÀç Å¾½Â Áß:** 'E' Å°·Î ÇÏÂ÷
+                // **1. í˜„ì¬ íƒ‘ìŠ¹ ì¤‘:** 'E' í‚¤ë¡œ í•˜ì°¨
                 ExitVehicle();
             }
             else
             {
-                // **2. Å¾½Â ÁßÀÌ ¾Æ´Ô:** 'E' Å°·Î Å¾½Â ½Ãµµ
+                // **2. íƒ‘ìŠ¹ ì¤‘ì´ ì•„ë‹˜:** 'E' í‚¤ë¡œ íƒ‘ìŠ¹ ì‹œë„
 
-                // ¿¹½Ã: ÅÂ±×°¡ "Player"ÀÎ °´Ã¼¸¦ Ã£½À´Ï´Ù. (½ÇÁ¦ °ÔÀÓ¿¡¼­´Â ±ÙÁ¢ °¨Áö ·ÎÁ÷À¸·Î ´ëÃ¼)
+                // ì˜ˆì‹œ: íƒœê·¸ê°€ "Player"ì¸ ê°ì²´ë¥¼ ì°¾ìŠµë‹ˆë‹¤. (ì‹¤ì œ ê²Œì„ì—ì„œëŠ” ê·¼ì ‘ ê°ì§€ ë¡œì§ìœ¼ë¡œ ëŒ€ì²´)
                 GameObject player = GameObject.FindGameObjectWithTag("Player");
 
                 if (player != null /* && IsPlayerNear(player) */)
                 {
+                    // 2-1. ì¸ë²¤í† ë¦¬ì— ì°¨ í‚¤ê°€ ìˆëŠ”ì§€ ë¨¼ì € ê²€ì‚¬
+                    if (!HasCarKey())
+                    {
+                        Debug.Log("[Vehicle] ì¸ë²¤í† ë¦¬ì— ì°¨ í‚¤ê°€ ì—†ì–´ì„œ íƒ‘ìŠ¹í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+                        return;
+                    }
+
                     EnterVehicle(player);
                 }
             }
         }
     }
 
-    // ¿ÜºÎ¿¡¼­ È£ÃâµÉ Å¾½Â ÇÔ¼ö
+    /// <summary>
+    /// ì¸ë²¤í† ë¦¬ì— ì°¨ í‚¤ê°€ ìˆëŠ”ì§€ í™•ì¸
+    /// </summary>
+    private bool HasCarKey()
+    {
+        // ì¸ë²¤í† ë¦¬ ì°½ì—ì„œ ì´ë¦„ìœ¼ë¡œ ì•„ì´í…œ ì°¾ê¸°
+        Item keyItem = ItemContainer.GetItem(inventoryWindowName, keyItemName);
+
+        if (keyItem == null)
+        {
+            Debug.Log($"[Vehicle] í‚¤ ì•„ì´í…œ(\"{keyItemName}\")ì„(ë¥¼) \"{inventoryWindowName}\" ì°½ì—ì„œ ì°¾ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.");
+            return false;
+        }
+
+        bool hasItem = ItemContainer.HasItem(inventoryWindowName, keyItem, 1);
+        if (!hasItem)
+        {
+            Debug.Log($"[Vehicle] \"{inventoryWindowName}\" ì°½ì— \"{keyItemName}\" ì•„ì´í…œì´ 1ê°œ ì´ìƒ ì—†ìŠµë‹ˆë‹¤.");
+        }
+
+        return hasItem;
+    }
+
+    // ì™¸ë¶€ì—ì„œ í˜¸ì¶œë  íƒ‘ìŠ¹ í•¨ìˆ˜
     public void EnterVehicle(GameObject player)
     {
         if (isOccupied) return;
@@ -77,54 +112,54 @@ public class VehicleEntryExitManager : MonoBehaviour
         currentPlayer = player;
         isOccupied = true;
 
-        // ÇÃ·¹ÀÌ¾î Ä«¸Ş¶ó ÂüÁ¶ (Å¾½Â ½Ã µü ÇÑ ¹ø¸¸ °¡Á®¿É´Ï´Ù.)
+        // í”Œë ˆì´ì–´ ì¹´ë©”ë¼ ì°¸ì¡° (íƒ‘ìŠ¹ ì‹œ ë”± í•œ ë²ˆë§Œ ê°€ì ¸ì˜µë‹ˆë‹¤.)
         playerCam = currentPlayer.GetComponentInChildren<Camera>(true);
 
-        // 1. ÇÃ·¹ÀÌ¾î Á¦¾î ºñÈ°¼ºÈ­ ¹× À§Ä¡ ¼³Á¤
-        // ÇÃ·¹ÀÌ¾î Ä³¸¯ÅÍ¿Í Ä«¸Ş¶ó¸¦ ºñÈ°¼ºÈ­ÇÕ´Ï´Ù.
+        // 1. í”Œë ˆì´ì–´ ì œì–´ ë¹„í™œì„±í™” ë° ìœ„ì¹˜ ì„¤ì •
+        // í”Œë ˆì´ì–´ ìºë¦­í„°ì™€ ì¹´ë©”ë¼ë¥¼ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤.
         currentPlayer.SetActive(false);
 
-        // 2. Â÷·® Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ® È°¼ºÈ­
+        // 2. ì°¨ëŸ‰ ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ í™œì„±í™”
         if (vehicleCam != null)
         {
             vehicleCam.enabled = true;
         }
 
-        // 3. VehicleController È°¼ºÈ­ (Â÷·® Á¦¾î ½ÃÀÛ)
+        // 3. VehicleController í™œì„±í™” (ì°¨ëŸ‰ ì œì–´ ì‹œì‘)
         vehicleController.enabled = true;
 
-        Debug.Log("Â÷·®¿¡ Å¾½ÂÇß½À´Ï´Ù. (E Å°)");
+        Debug.Log("ì°¨ëŸ‰ì— íƒ‘ìŠ¹í–ˆìŠµë‹ˆë‹¤. (E í‚¤)");
     }
 
-    // ¿ÜºÎ¿¡¼­ È£ÃâµÉ ÇÏÂ÷ ÇÔ¼ö
+    // ì™¸ë¶€ì—ì„œ í˜¸ì¶œë  í•˜ì°¨ í•¨ìˆ˜
     public void ExitVehicle()
     {
         if (!isOccupied || currentPlayer == null) return;
 
-        // 1. VehicleController ºñÈ°¼ºÈ­ (Â÷·® Á¦¾î ÁßÁö)
+        // 1. VehicleController ë¹„í™œì„±í™” (ì°¨ëŸ‰ ì œì–´ ì¤‘ì§€)
         vehicleController.enabled = false;
 
-        // 2. Â÷·® Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ® ºñÈ°¼ºÈ­
+        // 2. ì°¨ëŸ‰ ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ ë¹„í™œì„±í™”
         if (vehicleCam != null)
         {
             vehicleCam.enabled = false;
         }
 
-        // 3. ÇÃ·¹ÀÌ¾îÀÇ ¹°¸®/Á¦¾î È°¼ºÈ­ ¹× À§Ä¡ ¼³Á¤
+        // 3. í”Œë ˆì´ì–´ì˜ ë¬¼ë¦¬/ì œì–´ í™œì„±í™” ë° ìœ„ì¹˜ ì„¤ì •
         if (playerExitPoint != null)
         {
             currentPlayer.transform.position = playerExitPoint.position;
             currentPlayer.transform.rotation = playerExitPoint.rotation;
         }
 
-        // ÇÃ·¹ÀÌ¾î Ä³¸¯ÅÍ¿Í Ä«¸Ş¶ó¸¦ ´Ù½Ã È°¼ºÈ­ÇÕ´Ï´Ù.
+        // í”Œë ˆì´ì–´ ìºë¦­í„°ì™€ ì¹´ë©”ë¼ë¥¼ ë‹¤ì‹œ í™œì„±í™”í•©ë‹ˆë‹¤.
         currentPlayer.SetActive(true);
 
-        // 4. »óÅÂ ÃÊ±âÈ­
+        // 4. ìƒíƒœ ì´ˆê¸°í™”
         currentPlayer = null;
         playerCam = null;
         isOccupied = false;
 
-        Debug.Log("Â÷·®¿¡¼­ ÇÏÂ÷Çß½À´Ï´Ù. (E Å°)");
+        Debug.Log("ì°¨ëŸ‰ì—ì„œ í•˜ì°¨í–ˆìŠµë‹ˆë‹¤. (E í‚¤)");
     }
 }
