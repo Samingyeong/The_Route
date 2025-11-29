@@ -1881,6 +1881,7 @@ GameObject:
   - component: {fileID: 8950362022839932776}
   - component: {fileID: -7128757450175337900}
   - component: {fileID: 4552536644830758245}
+  - component: {fileID: 5295919533870137497}
   m_Layer: 0
   m_Name: zombie_Random_Collider
   m_TagString: Untagged
@@ -2042,6 +2043,9 @@ MonoBehaviour:
   maxHp: 100
   currentHp: 0
   crawlHpThreshold: 30
+  carHitDamage: 50
+  knockbackForce: 15
+  carTag: Car
   keyPrefab: {fileID: 6202248377633566000, guid: 609cad5eb478dd849beaf2705286bdf7, type: 3}
   keyDropChance: 0.1
   bandagePrefab: {fileID: 6202248377633566001, guid: 83ef70c29adb585449303015352ea318, type: 3}
@@ -2171,6 +2175,33 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 4729e82b06d2cb04aa065f933ed5b377, type: 3}
   - {fileID: 8300000, guid: c952f9742883032479cbe88441c0619b, type: 3}
   - {fileID: 8300000, guid: 0f7270ec6fed2fc45bdd10957f1159a0, type: 3}
+--- !u!54 &5295919533870137497
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4180246532586205461}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 3
+  m_AngularDamping: 1
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 4
+  m_CollisionDetection: 0
 --- !u!1 &4352507076058427227
 GameObject:
   m_ObjectHideFlags: 0

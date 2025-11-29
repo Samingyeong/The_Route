@@ -313,7 +313,10 @@ public class ZombieAI : MonoBehaviour
     {
         isDead = true;
         // AI 기능 정지
-        if(navAgent != null) navAgent.isStopped = true;
+        if (navAgent != null && navAgent.isActiveAndEnabled && navAgent.isOnNavMesh)
+        {
+            navAgent.isStopped = true;
+        }
         enabled = false; // 이 스크립트의 Update를 멈춤
     }
 
@@ -501,7 +504,8 @@ public class ZombieAI : MonoBehaviour
             case ZombieState.Walk:
             case ZombieState.Run:
             case ZombieState.Crawl: // [추가] 이동 로직 공유
-                if (navAgent != null && navAgent.enabled && !navAgent.isStopped && navAgent.isOnNavMesh)
+                // NavMesh 위에 올라가지 않은 에이전트에서 isStopped를 읽지 않도록 순서/조건 정리
+                if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh && !navAgent.isStopped)
                 {
                     navAgent.SetDestination(playerTarget.position);
                 }
