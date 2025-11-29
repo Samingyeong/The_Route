@@ -19,7 +19,6 @@ public enum TutorialStep
 
 public class TutorialManager : MonoBehaviour
 {
-    // ... (참조 및 변수 선언 부분은 동일) ...
     [Header("참조 설정")]
     [SerializeField] private GameObject player;
     [SerializeField] private HealthSystem playerHealth;
@@ -51,38 +50,117 @@ public class TutorialManager : MonoBehaviour
     // 이벤트 구독 추적
     private bool isSubscribedToHealth = false;
     
-    // ... (Start, Update, InitializeStep 동일) ...
+    // [추가] 좀비들을 관리하기 위한 배열
+    private ShootZombie[] allZombies;
 
     void Start()
     {
-        // ... (기존 내용 동일) ...
-        if (player == null) player = GameObject.FindGameObjectWithTag("Player");
-        if (playerHealth == null && player != null) playerHealth = player.GetComponent<HealthSystem>();
-        if (vehicleManager == null) vehicleManager = FindObjectOfType<VehicleEntryExitManager>();
-        if (tutorialUI == null) tutorialUI = FindObjectOfType<TutorialUI>();
+        if (player == null)
+            player = GameObject.FindGameObjectWithTag("Player");
+        
+        if (playerHealth == null && player != null)
+            playerHealth = player.GetComponent<HealthSystem>();
+        
+        if (vehicleManager == null)
+            vehicleManager = FindObjectOfType<VehicleEntryExitManager>();
+        
+        if (tutorialUI == null)
+            tutorialUI = FindObjectOfType<TutorialUI>();
+        
         startPosition = player != null ? player.transform.position : Vector3.zero;
         
-        if (isTutorialActive) InitializeStep(currentStep);
+        // 씬에 있는 모든 좀비를 찾음
+        allZombies = FindObjectsOfType<ShootZombie>();
+        
+        // 시작할 때 좀비 상태 설정
+        UpdateZombieState(currentStep);
+        
+        // 튜토리얼 시작
+        if (isTutorialActive)
+        {
+            InitializeStep(currentStep);
+        }
     }
     
-    void Update() { if (!isTutorialActive) return; CheckStepCompletion(); }
-
+    void Update()
+    {
+        if (!isTutorialActive) return;
+        
+        CheckStepCompletion();
+    }
+    
     void InitializeStep(TutorialStep step)
     {
+        // 이전 단계 구독 해제
         UnsubscribeFromEvents();
-        ResetStepStates(); // 단계가 바뀔 때마다 상태 초기화
+        
+        // 상태 초기화
+        ResetStepStates();
+        
+        // 새 단계 구독
         SubscribeToEvents(step);
         
-        if (tutorialUI != null) tutorialUI.UpdateStep((int)step + 1, GetStepDescription(step));
+        // 좀비 상태 업데이트
+        UpdateZombieState(step);
+        
+        // UI 업데이트
+        if (tutorialUI != null)
+        {
+            tutorialUI.UpdateStep((int)step + 1, GetStepDescription(step));
+        }
+        
         Debug.Log($"[Tutorial] Step {(int)step + 1}/9 Start: {step}");
+    }
+    
+    // [추가] 좀비 상태 제어 함수
+    void UpdateZombieState(TutorialStep step)
+    {
+        if (allZombies == null) return;
+
+        bool shouldMove = true;
+
+        // 1단계(WalkRun)에서는 좀비가 움직이지 않음
+        if (step == TutorialStep.WalkRun)
+        {
+            shouldMove = false;
+        }
+        // 2단계(TakeDamage)부터는 움직임 (기본값 true)
+
+        foreach (var zombie in allZombies)
+        {
+            if (zombie != null)
+            {
+                // ZombieAI 컴포넌트를 끄면 멈춤
+                var ai = zombie.GetComponent<ZombieAI>();
+                if (ai != null)
+                {
+                    ai.enabled = shouldMove;
+                    
+                    // NavMeshAgent도 멈춰주는 것이 안전함
+                    var agent = zombie.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                    if (agent != null)
+                    {
+                        if (shouldMove) 
+                        {
+                            if (!agent.enabled) agent.enabled = true;
+                            if (agent.isOnNavMesh) agent.isStopped = false;
+                        }
+                        else 
+                        {
+                            if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     void SubscribeToEvents(TutorialStep step)
     {
         switch (step)
         {
-            case TutorialStep.TakeDamage: // 데미지 받기 단계
-            case TutorialStep.UseBandage: // 붕대 사용 단계
+            case TutorialStep.TakeDamage:
+            case TutorialStep.UseBandage:
                 if (playerHealth != null && !isSubscribedToHealth)
                 {
                     playerHealth.OnDamageTaken += OnPlayerDamaged;
@@ -90,11 +168,9 @@ public class TutorialManager : MonoBehaviour
                     isSubscribedToHealth = true;
                 }
                 break;
-            // ReloadShoot 단계는 이벤트 구독 필요 없음 (ZombieBodyPart에서 직접 호출)
         }
     }
     
-    // ... (UnsubscribeFromEvents, ResetStepStates 동일) ...
     void UnsubscribeFromEvents()
     {
         if (playerHealth != null && isSubscribedToHealth)
@@ -104,13 +180,19 @@ public class TutorialManager : MonoBehaviour
             isSubscribedToHealth = false;
         }
     }
-
+    
     void ResetStepStates()
     {
-        // ... (기존과 동일하게 모든 플래그 false로) ...
-        hasWalked = false; hasRun = false; hasHitZombie = false; hasTakenDamage = false;
-        hasPickedUpBandage = false; hasOpenedInventory = false; hasUsedBandage = false;
-        hasEnteredVehicle = false; hasDriven = false; hasExitedVehicle = false;
+        hasWalked = false;
+        hasRun = false;
+        hasHitZombie = false;
+        hasTakenDamage = false;
+        hasPickedUpBandage = false;
+        hasOpenedInventory = false;
+        hasUsedBandage = false;
+        hasEnteredVehicle = false;
+        hasDriven = false;
+        hasExitedVehicle = false;
     }
     
     void CheckStepCompletion()
@@ -148,58 +230,102 @@ public class TutorialManager : MonoBehaviour
                 break;
         }
         
-        if (stepCompleted) CompleteCurrentStep();
+        if (stepCompleted)
+        {
+            CompleteCurrentStep();
+        }
     }
-    
     
     bool CheckWalkRun()
     {
         if (player == null) return false;
+        
+        // 이동 거리 체크
         float distanceMoved = Vector3.Distance(startPosition, player.transform.position);
-        if (distanceMoved >= walkDistanceRequired) hasWalked = true;
-        if (Input.GetKey(KeyCode.LeftShift) && (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0)) hasRun = true;
+        if (distanceMoved >= walkDistanceRequired)
+        {
+            hasWalked = true;
+        }
+        
+        // 달리기 체크 (Shift 키)
+        if (Input.GetKey(KeyCode.LeftShift) && (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0))
+        {
+            hasRun = true;
+        }
+        
         return hasWalked && hasRun;
     }
-
-    bool CheckReloadShoot() { return hasHitZombie; }
-
+    
+    bool CheckReloadShoot()
+    {
+        // 총 쏘기와 좀비 타격은 ZombieBodyPart에서 감지
+        return hasHitZombie;
+    }
+    
     bool CheckBandagePickup()
     {
+        // "Bandage"라는 이름의 아이템이 인벤토리에 있는지 확인
+        // 1. 먼저 아이템 템플릿이나 인스턴스를 찾아야 함 (이름으로 검색)
         Item bandageItem = ItemContainer.GetItem("Inventory", "Bandage");
-        if (bandageItem != null && ItemContainer.HasItem("Inventory", bandageItem, 1)) hasPickedUpBandage = true;
+        
+        if (bandageItem != null)
+        {
+            // 2. 찾은 아이템으로 개수 확인
+            if (ItemContainer.HasItem("Inventory", bandageItem, 1))
+            {
+                hasPickedUpBandage = true;
+            }
+        }
         return hasPickedUpBandage;
     }
-
+    
     bool CheckInventoryOpen()
     {
         ItemContainer inventory = WidgetUtility.Find<ItemContainer>("Inventory");
-        if (inventory != null && inventory.IsVisible) hasOpenedInventory = true;
+        if (inventory != null && inventory.IsVisible)
+        {
+            hasOpenedInventory = true;
+        }
         return hasOpenedInventory;
     }
-
+    
     bool CheckVehicleEnter()
     {
         if (vehicleManager == null) return false;
-        VehicleController vc = vehicleManager.GetComponent<VehicleController>();
-        if (vc != null && vc.enabled) hasEnteredVehicle = true;
-        return hasEnteredVehicle;
-    }
-
-    bool CheckVehicleDrive()
-    {
-        if (vehicleManager == null) return false;
+        
         VehicleController vc = vehicleManager.GetComponent<VehicleController>();
         if (vc != null && vc.enabled)
         {
+            hasEnteredVehicle = true;
+        }
+        return hasEnteredVehicle;
+    }
+    
+    bool CheckVehicleDrive()
+    {
+        if (vehicleManager == null) return false;
+        
+        VehicleController vc = vehicleManager.GetComponent<VehicleController>();
+        if (vc != null && vc.enabled)
+        {
+            // 차량 입력 체크
             if (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0)
             {
-                if (vehicleStartPosition == Vector3.zero) vehicleStartPosition = vehicleManager.transform.position;
-                if (Vector3.Distance(vehicleStartPosition, vehicleManager.transform.position) >= driveDistanceRequired) hasDriven = true;
+                if (vehicleStartPosition == Vector3.zero)
+                {
+                    vehicleStartPosition = vehicleManager.transform.position;
+                }
+                
+                float distance = Vector3.Distance(vehicleStartPosition, vehicleManager.transform.position);
+                if (distance >= driveDistanceRequired)
+                {
+                    hasDriven = true;
+                }
             }
         }
         return hasDriven;
     }
-
+    
     bool CheckVehicleExit()
     {
         if (vehicleManager == null) return false;
@@ -209,8 +335,6 @@ public class TutorialManager : MonoBehaviour
         // 수정된 로직:
         // 1. 차량 제어권이 비활성화됨 (!vc.enabled)
         // 2. 플레이어가 활성화됨 (player.activeSelf)
-        // 3. (선택) 하차 로그가 찍힌 걸 보면 VehicleEntryExitManager의 isOccupied가 false일 것임.
-        
         if (vc != null && !vc.enabled)
         {
             if (player != null && player.activeSelf)
@@ -220,22 +344,20 @@ public class TutorialManager : MonoBehaviour
         }
         return hasExitedVehicle;
     }
-
-    // ... (CompleteCurrentStep, DelayedNextStep, CompleteTutorial 동일) ...
+    
     void CompleteCurrentStep()
     {
         Debug.Log($"[Tutorial] Step {(int)currentStep + 1}/9 Complete!");
         
         if (tutorialUI != null)
         {
-            // 체크 표시 보여주기
             tutorialUI.ShowStepComplete();
         }
         
         // 마지막 단계인지 확인
         if (currentStep == TutorialStep.ExitVehicle)
         {
-            // 마지막 단계면 조금 더 기다렸다가 완료 처리 (체크 표시를 볼 시간 주기)
+            // 마지막 단계면 조금 더 기다렸다가 완료 처리
             StartCoroutine(DelayedCompleteTutorial());
         }
         else
@@ -245,17 +367,32 @@ public class TutorialManager : MonoBehaviour
             StartCoroutine(DelayedNextStep());
         }
     }
-
+    
     System.Collections.IEnumerator DelayedCompleteTutorial()
     {
         yield return new WaitForSeconds(2.0f); // 2초 대기
         CompleteTutorial();
     }
-
-    System.Collections.IEnumerator DelayedNextStep() { yield return new WaitForSeconds(1.5f); InitializeStep(currentStep); }
     
-    void CompleteTutorial() { isTutorialActive = false; Debug.Log("[Tutorial] All Complete!"); if (tutorialUI != null) tutorialUI.ShowTutorialComplete(); UnsubscribeFromEvents(); }
-
+    System.Collections.IEnumerator DelayedNextStep()
+    {
+        yield return new WaitForSeconds(1.5f);
+        InitializeStep(currentStep);
+    }
+    
+    void CompleteTutorial()
+    {
+        isTutorialActive = false;
+        Debug.Log("[Tutorial] All Complete!");
+        
+        if (tutorialUI != null)
+        {
+            tutorialUI.ShowTutorialComplete();
+        }
+        
+        UnsubscribeFromEvents();
+    }
+    
     // 이벤트 핸들러
     void OnPlayerDamaged(float damage)
     {
@@ -275,12 +412,20 @@ public class TutorialManager : MonoBehaviour
         }
     }
     
+    // 외부에서 호출: 좀비 타격 감지
     public void OnZombieHit(bool isHeadshot)
     {
         if (currentStep == TutorialStep.ReloadShoot)
         {
             hasHitZombie = true;
-            Debug.Log(isHeadshot ? "[Tutorial] Headshot!" : "[Tutorial] Zombie Hit!");
+            if (isHeadshot)
+            {
+                Debug.Log("[Tutorial] Headshot! (Instant Kill)");
+            }
+            else
+            {
+                Debug.Log("[Tutorial] Zombie Hit!");
+            }
         }
     }
     
@@ -299,7 +444,7 @@ public class TutorialManager : MonoBehaviour
             case TutorialStep.OpenInventory:
                 return "Press I to open inventory & check Bandage";
             case TutorialStep.UseBandage:
-                return "Use Bandage from inventory to heal (Press C)";
+                return "Use Bandage from inventory to heal (Right Click)";
             case TutorialStep.EnterVehicle:
                 return "Press E near the car to enter";
             case TutorialStep.DriveVehicle:
