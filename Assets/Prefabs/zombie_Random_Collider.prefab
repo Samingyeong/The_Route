@@ -1884,7 +1884,7 @@ GameObject:
   - component: {fileID: 5295919533870137497}
   m_Layer: 0
   m_Name: zombie_Random_Collider
-  m_TagString: Untagged
+  m_TagString: Zombie
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2048,7 +2048,7 @@ MonoBehaviour:
   carHitDamage: 50
   knockbackForce: 15
   carTag: Car
-  keyPrefab: {fileID: 6202248377633566000, guid: 609cad5eb478dd849beaf2705286bdf7, type: 3}
+  keyPrefab: {fileID: 5949098680342420879, guid: 10016b0754c590048ad048b01b7605f7, type: 3}
   keyDropChance: 0.1
   bandagePrefab: {fileID: 6202248377633566001, guid: 83ef70c29adb585449303015352ea318, type: 3}
   bandageDropChance: 0.3
