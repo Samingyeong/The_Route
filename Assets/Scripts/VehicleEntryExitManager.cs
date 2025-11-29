@@ -11,6 +11,9 @@ public class VehicleEntryExitManager : MonoBehaviour
     // 하차 시 플레이어가 스폰될 위치의 Transform을 여기에 연결합니다.
     public Transform playerExitPoint;
 
+    // 추가: 플레이어가 탑승할 수 있는 최대 거리 (Inspector에서 설정)
+    public float maxEntryDistance = 5.0f;
+
     // 차량에 부착된 카메라 컴포넌트를 직접 제어하기 위한 변수
     private Camera vehicleCam;
 
@@ -18,10 +21,10 @@ public class VehicleEntryExitManager : MonoBehaviour
     private Camera playerCam;
 
     private GameObject currentPlayer; // 현재 탑승 중인 플레이어 객체
-    private bool isOccupied = false;  // 현재 탑승 여부
+    private bool isOccupied = false;  // 현재 탑승 여부
 
     [Header("차 키 설정")]
-    [SerializeField] private string keyItemName = "Car Key";      // 인벤토리에 있는 차 키 아이템 DisplayName
+    [SerializeField] private string keyItemName = "Car Key";      // 인벤토리에 있는 차 키 아이템 DisplayName
     [SerializeField] private string inventoryWindowName = "Inventory"; // 키가 들어있는 인벤토리 창 이름
 
     void Awake()
@@ -66,8 +69,15 @@ public class VehicleEntryExitManager : MonoBehaviour
                 // 예시: 태그가 "Player"인 객체를 찾습니다. (실제 게임에서는 근접 감지 로직으로 대체)
                 GameObject player = GameObject.FindGameObjectWithTag("Player");
 
-                if (player != null /* && IsPlayerNear(player) */)
+                if (player != null)
                 {
+                    // 2-0. 플레이어가 차량 근처에 있는지 검사 (추가된 로직)
+                    if (!IsPlayerNear(player))
+                    {
+                        Debug.Log("[Vehicle] 차량 근처에 있어야 탑승할 수 있습니다.");
+                        return;
+                    }
+
                     // 2-1. 인벤토리에 차 키가 있는지 먼저 검사
                     if (!HasCarKey())
                     {
@@ -79,6 +89,20 @@ public class VehicleEntryExitManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 플레이어가 차량의 탑승 가능 거리 이내에 있는지 확인합니다. (추가된 함수)
+    /// </summary>
+    private bool IsPlayerNear(GameObject player)
+    {
+        if (player == null) return false;
+
+        // 차량(이 스크립트가 부착된 GameObject)과 플레이어 사이의 거리를 계산합니다.
+        float distance = Vector3.Distance(transform.position, player.transform.position);
+
+        // 거리가 maxEntryDistance보다 작거나 같으면 true를 반환합니다.
+        return distance <= maxEntryDistance;
     }
 
     /// <summary>
