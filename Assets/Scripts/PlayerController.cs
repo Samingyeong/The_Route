@@ -1,4 +1,6 @@
 using UnityEngine;
+using StoreGame;
+using System.Collections; // 코루틴 사용을 위해 필요
 
 public class PlayerController : MonoBehaviour
 {
@@ -7,54 +9,117 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float runSpeed = 8f;
     [SerializeField] private float jumpForce = 5f;
     
-    // [변경] 회전 속도 변수 삭제 (CameraFollow가 회전 담당함)
-
     [Header("컴포넌트")]
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Animator animator; 
-    [SerializeField] private AudioSource audioSource; // 소리 재생기
-    [SerializeField] private AudioClip stepSound;     // 발소리 파일 (.wav)
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip stepSound;
     
+    // ================= [Death Cam 추가 변수] =================
+    [Header("죽음 연출 설정")]
+    [SerializeField] private GameObject weaponHolder; // 손에 든 무기 (숨김 처리용)
+    [SerializeField] private Transform headBone;      // ★ 캐릭터의 머리(Head) 뼈
+    // =======================================================
+
+    private HealthSystem healthSystem;
     private float verticalVelocity; 
     private bool isGrounded;
     private float gravity = -20f;   
     private bool isRunning = false;
+    private bool isDead = false;
     
-    public void OnFootstep() // 발소리
+    void Start()
     {
-        // 걷거나 뛰고 있을 때만 소리 재생
+        if (characterController == null) characterController = GetComponent<CharacterController>();
+        if (animator == null) animator = GetComponent<Animator>(); 
+
+        healthSystem = GetComponent<HealthSystem>();
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath += HandleDeath;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath -= HandleDeath;
+        }
+    }
+
+    // [추가됨] 죽은 후 시체가 바닥에 닿을 때까지 중력을 적용하는 코루틴
+    private IEnumerator ApplyGravityAfterDeath()
+    {
+        // 약간의 지연을 주어 애니메이션이 시작된 후 떨어지게 함 (선택사항)
+        yield return new WaitForSeconds(0.1f);
+
+        // 캐릭터 컨트롤러가 존재하고, 아직 공중에 떠 있다면 계속 반복
+        while (characterController != null && characterController.enabled && !characterController.isGrounded)
+        {
+            // 중력 가속도 계산
+            verticalVelocity += gravity * Time.deltaTime;
+            
+            // 아래 방향으로만 이동 적용
+            Vector3 gravityMove = new Vector3(0, verticalVelocity, 0);
+            characterController.Move(gravityMove * Time.deltaTime);
+
+            // 다음 프레임까지 대기
+            yield return null;
+        }
+        
+        // 바닥에 닿았으면 속도 초기화 (안전장치)
+        verticalVelocity = 0f;
+    }
+
+    void HandleDeath()
+    {
+        if (isDead) return;
+        isDead = true; 
+        
+        // 1. 애니메이션 실행
+        if (animator != null) animator.SetTrigger("Die");
+
+        // 2. 무기 숨기기
+        if (weaponHolder != null) weaponHolder.SetActive(false);
+
+        // ================= [1인칭 시점 유지 로직] =================
+        Transform cameraTransform = Camera.main.transform;
+        if (cameraTransform != null && headBone != null)
+        {
+            cameraTransform.SetParent(headBone);
+            cameraTransform.localPosition = new Vector3(0, 0.15f, 0.1f); 
+            cameraTransform.localRotation = Quaternion.identity; 
+        }
+        
+        // 3. 마우스 커서 잠금 해제
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // [추가됨] ★ 죽은 후에도 몸이 바닥으로 떨어지도록 중력 적용 시작
+        StartCoroutine(ApplyGravityAfterDeath());
+
+        Debug.Log("플레이어 사망 - 1인칭 시점 유지 및 중력 적용 시작");
+    }
+    
+    public void OnFootstep() 
+    {
+        if (isDead) return;
         if (stepSound != null && audioSource != null && characterController.isGrounded)
         {
-            // (선택사항) 소리가 기계음처럼 들리지 않게 음정(Pitch)을 살짝 랜덤으로 바꿈
             audioSource.pitch = Random.Range(0.9f, 1.1f); 
             audioSource.volume = Random.Range(0.8f, 1.0f);
-
-            // 소리 '한 번' 재생
             audioSource.PlayOneShot(stepSound);
         }
     }
     
-    void Start()
-    {
-        if (characterController == null)
-        {
-            characterController = GetComponent<CharacterController>();
-            // 없으면 자동 추가
-            if (characterController == null)
-            {
-                characterController = gameObject.AddComponent<CharacterController>();
-                characterController.height = 2f;
-                characterController.center = new Vector3(0, 1f, 0); 
-            }
-        }
-        if (animator == null) animator = GetComponent<Animator>(); 
-    }
-    
     void Update()
     {
+        // 죽으면 더 이상 플레이어 입력을 받지 않음
+        if (isDead) return;
+
         HandleMovement();
         
-        // 점프
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             animator.SetTrigger("OnJump");
@@ -75,45 +140,28 @@ public class PlayerController : MonoBehaviour
         float vertical = Input.GetAxis("Vertical");     
         isRunning = Input.GetKey(KeyCode.LeftShift);
 
-        // [핵심 변경 사항]
-        // CameraFollow 스크립트가 이미 플레이어의 몸통을 카메라가 보는 방향으로 돌려놓았습니다.
-        // 그러므로 복잡한 카메라 계산 없이, 그냥 로컬 좌표(내 기준 앞/오른쪽)로 움직이면 됩니다.
-        
-        // transform.forward = 내 몸이 보는 앞쪽 (이미 카메라 방향)
-        // transform.right = 내 몸의 오른쪽
         Vector3 moveDirection = transform.forward * vertical + transform.right * horizontal;
 
-        // 대각선 이동 시 속도 일정하게
         if (moveDirection.magnitude > 1f)
         {
             moveDirection.Normalize();
         }
 
-        // [삭제] 캐릭터 회전 로직 삭제 
-        // (CameraFollow가 마우스에 따라 몸통을 돌려주므로 여기서 건드리면 안 됨)
-
-        // 실제 이동 적용
         float currentSpeed = isRunning ? runSpeed : moveSpeed;
         Vector3 finalMove = moveDirection * currentSpeed;
         
-        // 중력 적용
         verticalVelocity += gravity * Time.deltaTime;
         finalMove.y = verticalVelocity;
 
         characterController.Move(finalMove * Time.deltaTime);
 
-        // 애니메이션
         if (animator != null)
         {
-            // 입력이 있는지만 체크
             bool hasInput = new Vector2(horizontal, vertical).sqrMagnitude > 0.01f;
             
             animator.SetBool("IsWalking", hasInput);
             animator.SetBool("IsRunning", hasInput && isRunning);
-            
-            // 뒤로 걷기 애니메이션
             animator.SetBool("IsBackwards", vertical < -0.1f);
-            
         }
     }
 }

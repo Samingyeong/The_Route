@@ -102,18 +102,18 @@ namespace StoreGame
         void Update()
         {
             // 테스트용: H 키로 데미지 받기
-            if (Input.GetKeyDown(KeyCode.H))
-            {
-                TakeDamage(10f);
-                Debug.Log($"체력: {currentHealth}/{maxHealth}");
-            }
+            // if (Input.GetKeyDown(KeyCode.H))
+            // {
+            //     TakeDamage(10f);
+            //     Debug.Log($"체력: {currentHealth}/{maxHealth}");
+            // }
 
-            // 테스트용: J 키로 회복
-            if (Input.GetKeyDown(KeyCode.J))
-            {
-                Heal(10f);
-                Debug.Log($"체력: {currentHealth}/{maxHealth}");
-            }
+            // // 테스트용: J 키로 회복
+            // if (Input.GetKeyDown(KeyCode.J))
+            // {
+            //     Heal(10f);
+            //     Debug.Log($"체력: {currentHealth}/{maxHealth}");
+            // }
         }
     }
 }
