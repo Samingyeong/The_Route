@@ -27,6 +27,11 @@ public class Gun : MonoBehaviour
     public float snappiness = 0.1f; // 작을수록 빠르고 강함 (Glock: 0.05, Kriss: 0.1)
     public float returnSpeed = 5f;  // 클수록 빨리 돌아옴 (5 ~ 10 추천)
 
+    [Header("반동 한계 설정 (Clamping)")]
+    // 총이 위로 올라갈 수 있는 최대 각도 (예: 20도 이상 안 올라감)
+    public float maxVerticalRecoilAngle = 20f; 
+    public float maxHorizontalRecoilAngle = 10f;
+
     [Header("Projectile Settings")]
     public GameObject bulletPrefab; // 총알 프리팹 (Rigidbody 필수!)
     public float muzzleVelocity = 50f; // 탄속 (빠를수록 레이저에 가까워짐)
