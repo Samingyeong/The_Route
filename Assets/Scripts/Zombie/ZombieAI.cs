@@ -110,9 +110,9 @@ public class ZombieAI : MonoBehaviour
     private bool isDead = false;
     private bool isHit = false;
     private bool isCrawlingMode = false;
-    private float hitRecoveryTime = 0.5f; // 피격 모션 길이만큼 멈춤 (필요시 조절)
+    // private float hitRecoveryTime = 0.5f; // 이 변수는 이제 기본값으로만 쓰입니다.
+    private float currentRecoveryTime = 0.5f; // [추가] 실제 적용될 멈춤 시간
     private float hitTimer = 0f;
-
     //sound
     private ZombieAudio zombieAudio;
 
@@ -317,12 +317,21 @@ public class ZombieAI : MonoBehaviour
         enabled = false; // 이 스크립트의 Update를 멈춤
     }
 
-    public void SetHit()
+    public void SetHit(float duration = 0.5f) 
+{
+    if (isDead) return;
+    
+    isHit = true;
+    hitTimer = Time.time;
+    currentRecoveryTime = duration; // 전달받은 시간만큼 멈춤 설정
+
+    // 즉시 정지 (NavMeshAgent 멈춤)
+    if (navAgent != null && navAgent.enabled) 
     {
-        if (isDead) return;
-        isHit = true;
-        hitTimer = Time.time;
+        navAgent.isStopped = true;
+        navAgent.velocity = Vector3.zero;
     }
+}
 
     public void StartCrawling()
     {
@@ -371,15 +380,15 @@ public class ZombieAI : MonoBehaviour
         // 2. 피격 상태 체크 (잠시 멈춤)
         if (isHit)
         {
-            // 설정된 회복 시간(hitRecoveryTime) 동안은 Hit 상태 유지
-            if (Time.time - hitTimer < hitRecoveryTime)
-            {
-                return ZombieState.Hit;
-            }
-            else
-            {
-                isHit = false; // 시간이 지나면 피격 상태 해제
-            }
+        // 설정된 회복 시간(currentRecoveryTime) 동안은 Hit 상태 유지 (이동 불가)
+        if (Time.time - hitTimer < currentRecoveryTime)
+        {
+            return ZombieState.Hit;
+        }
+        else
+        {
+            isHit = false; // 시간이 지나면 피격 상태 해제
+        }
         }
 
         // 3. 공격 중 유지 로직

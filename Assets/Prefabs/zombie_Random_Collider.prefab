@@ -2043,6 +2043,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 100
   currentHp: 0
+  hitStunDuration: 3.6
   crawlHpThreshold: 30
   carHitDamage: 50
   knockbackForce: 15

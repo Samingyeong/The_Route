@@ -9,6 +9,9 @@ public class ShootZombie : MonoBehaviour
     public int currentHp;
     private bool isDead = false;
 
+    [Header("Hit Reaction")]
+    public float hitStunDuration = 1.0f;
+
     // [설정] 기어가기 시작할 체력
     public int crawlHpThreshold = 30;
     private bool hasDecidedCrawl = false;
@@ -95,7 +98,12 @@ public class ShootZombie : MonoBehaviour
         else
         {
             if (animator != null) animator.SetTrigger("OnHit");
-            if (zombieAI != null) zombieAI.SetHit();
+            
+            // [수정] AI에게 멈출 시간(hitStunDuration)을 전달
+            if (zombieAI != null) 
+            {
+                zombieAI.SetHit(hitStunDuration);
+            }
 
             if (currentHp <= crawlHpThreshold && !hasDecidedCrawl)
             {
