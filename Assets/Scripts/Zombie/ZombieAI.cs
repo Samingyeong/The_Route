@@ -313,10 +313,7 @@ public class ZombieAI : MonoBehaviour
     {
         isDead = true;
         // AI 기능 정지
-        if (navAgent != null && navAgent.isActiveAndEnabled && navAgent.isOnNavMesh)
-        {
-            navAgent.isStopped = true;
-        }
+        if(navAgent != null) navAgent.isStopped = true;
         enabled = false; // 이 스크립트의 Update를 멈춤
     }
 
