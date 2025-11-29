@@ -1,4 +1,5 @@
 using UnityEngine;
+using StoreGame; // HealthSystem 네임스페이스 추가
 
 public class CameraFollow : MonoBehaviour
 {
@@ -23,8 +24,18 @@ public class CameraFollow : MonoBehaviour
     [SerializeField] private float cameraCollisionRadius = 0.2f; // 카메라 충돌 체크 반경
     [SerializeField] private LayerMask obstacleLayer = -1; // 충돌 체크할 레이어
     
+    [Header("카메라 쉐이크 설정")]
+    [SerializeField] private float shakeIntensity = 2f; // 쉐이크 강도
+    [SerializeField] private float shakeDuration = 0.3f; // 쉐이크 지속 시간
+    
     private float rotationX = 0f;
     private float rotationY = 0f;
+    
+    // 카메라 쉐이크 변수
+    private float currentShakeDuration = 0f;
+    private float currentShakeIntensity = 0f;
+    private Vector3 originalLocalPosition;
+    private HealthSystem playerHealthSystem;
     
     void Start()
     {
@@ -70,11 +81,65 @@ public class CameraFollow : MonoBehaviour
             // 각도를 -180 ~ 180 범위로 정규화
             if (rotationX > 180f)
                 rotationX -= 360f;
+            
+            // 원래 로컬 위치 저장
+            originalLocalPosition = cameraRoot.localPosition;
+        }
+        
+        // 플레이어 HealthSystem 찾기 및 이벤트 구독
+        if (target != null)
+        {
+            playerHealthSystem = target.GetComponent<HealthSystem>();
+            if (playerHealthSystem != null)
+            {
+                playerHealthSystem.OnDamageTaken += OnPlayerDamaged;
+            }
         }
         
         // 커서 잠금
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+    }
+    
+    // 플레이어가 데미지를 받았을 때 호출
+    void OnPlayerDamaged(float damageAmount)
+    {
+        // 카메라 쉐이크 시작
+        StartShake();
+    }
+    
+    // 카메라 쉐이크 시작
+    void StartShake()
+    {
+        currentShakeDuration = shakeDuration;
+        currentShakeIntensity = shakeIntensity;
+    }
+    
+    // 카메라 쉐이크 업데이트
+    void UpdateShake()
+    {
+        if (currentShakeDuration > 0f)
+        {
+            // 랜덤한 방향으로 쉐이크 적용
+            Vector3 shakeOffset = Random.insideUnitSphere * currentShakeIntensity;
+            // X, Y축만 쉐이크 (Z축은 깊이감 때문에 제외하는 것이 좋음)
+            shakeOffset.z = 0f;
+            
+            // 쉐이크를 카메라 로컬 위치에 추가
+            cameraRoot.localPosition = originalLocalPosition + shakeOffset;
+            
+            // 쉐이크 감쇠
+            currentShakeDuration -= Time.deltaTime;
+            currentShakeIntensity = Mathf.Lerp(shakeIntensity, 0f, 1f - (currentShakeDuration / shakeDuration));
+        }
+        else
+        {
+            // 쉐이크가 끝나면 원래 위치로 복귀
+            if (cameraRoot != null)
+            {
+                cameraRoot.localPosition = originalLocalPosition;
+            }
+        }
     }
     
     // 자식 Transform 재귀적으로 찾기
@@ -104,15 +169,21 @@ public class CameraFollow : MonoBehaviour
         // 마우스 입력으로 카메라 회전
         HandleMouseLook();
         
+        // 카메라 쉐이크 업데이트
+        UpdateShake();
+        
         // 카메라 위치 업데이트
         UpdateCameraPosition();
     }
     
     void HandleMouseLook()
     {
+        // 쉐이크 중일 때는 마우스 입력 감소 (자연스러운 느낌)
+        float shakeMultiplier = currentShakeDuration > 0f ? 0.5f : 1f;
+        
         // 마우스 입력 받기
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * shakeMultiplier;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * shakeMultiplier;
         
         // 수평 회전 (Y축) - Player도 함께 회전
         rotationY += mouseX;
@@ -129,6 +200,12 @@ public class CameraFollow : MonoBehaviour
         // X, Z는 offset 적용, Y는 기본값을 설정하되 HeadBob이 수정할 수 있도록 함
         Vector3 desiredLocalPos = new Vector3(offset.x, eyeHeight + offset.y, offset.z);
         
+        // 쉐이크 중이 아닐 때만 원래 위치 업데이트
+        if (currentShakeDuration <= 0f)
+        {
+            originalLocalPosition = desiredLocalPos;
+        }
+        
         // CameraRoot 회전 적용 (수직 회전만 - 1인칭 시점)
         cameraRoot.localRotation = Quaternion.Euler(rotationX, 0, 0);
         
@@ -136,23 +213,32 @@ public class CameraFollow : MonoBehaviour
         // Y는 HeadBob이 제어하므로 처음 설정 후에는 유지
         Vector3 currentLocalPos = cameraRoot.localPosition;
         
-        // 처음 시작할 때나 Y 값이 0에 가까우면 기본값으로 설정
-        if (Mathf.Abs(currentLocalPos.y) < 0.01f)
+        // 쉐이크 중이 아닐 때만 기본 위치 업데이트
+        if (currentShakeDuration <= 0f)
         {
-            cameraRoot.localPosition = desiredLocalPos;
-        }
-        else
-        {
-            // X, Z만 업데이트하고 Y는 HeadBob이 제어하도록 유지
-            if (!smoothFollow)
+            // 처음 시작할 때나 Y 값이 0에 가까우면 기본값으로 설정
+            if (Mathf.Abs(currentLocalPos.y) < 0.01f)
             {
-                cameraRoot.localPosition = new Vector3(desiredLocalPos.x, currentLocalPos.y, desiredLocalPos.z);
+                cameraRoot.localPosition = desiredLocalPos;
+                originalLocalPosition = desiredLocalPos;
             }
             else
             {
-                float newX = Mathf.Lerp(currentLocalPos.x, desiredLocalPos.x, smoothSpeed * Time.deltaTime);
-                float newZ = Mathf.Lerp(currentLocalPos.z, desiredLocalPos.z, smoothSpeed * Time.deltaTime);
-                cameraRoot.localPosition = new Vector3(newX, currentLocalPos.y, newZ);
+                // X, Z만 업데이트하고 Y는 HeadBob이 제어하도록 유지
+                if (!smoothFollow)
+                {
+                    Vector3 newPos = new Vector3(desiredLocalPos.x, currentLocalPos.y, desiredLocalPos.z);
+                    cameraRoot.localPosition = newPos;
+                    originalLocalPosition = newPos;
+                }
+                else
+                {
+                    float newX = Mathf.Lerp(currentLocalPos.x, desiredLocalPos.x, smoothSpeed * Time.deltaTime);
+                    float newZ = Mathf.Lerp(currentLocalPos.z, desiredLocalPos.z, smoothSpeed * Time.deltaTime);
+                    Vector3 newPos = new Vector3(newX, currentLocalPos.y, newZ);
+                    cameraRoot.localPosition = newPos;
+                    originalLocalPosition = newPos;
+                }
             }
         }
     }
@@ -194,6 +280,12 @@ public class CameraFollow : MonoBehaviour
     
     void OnDisable()
     {
+        // 이벤트 구독 해제
+        if (playerHealthSystem != null)
+        {
+            playerHealthSystem.OnDamageTaken -= OnPlayerDamaged;
+        }
+        
         // 스크립트 비활성화 시 커서 잠금 해제
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
