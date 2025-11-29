@@ -156,6 +156,12 @@ public class GunAction : MonoBehaviour
         currentGun = allGuns[index];
     }
 
+    // UI에서 현재 총 정보를 가져오기 위한 public 메서드
+    public Gun GetCurrentGun()
+    {
+        return currentGun;
+    }
+
     void Shoot()
     {
         nextFireTime = Time.time + currentGun.fireRate;
