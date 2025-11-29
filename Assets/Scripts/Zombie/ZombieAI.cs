@@ -27,8 +27,8 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private float idleDistance = 101.0f;
     [SerializeField] private float walkDistance = 100.0f;
     [SerializeField] private float runDistance = 25.0f;
-    [SerializeField] private float attackDistance = 2.0f;
-    [SerializeField] private float attackMaintainDistance = 3.0f;
+    [SerializeField] private float attackDistance = 4.0f;
+    [SerializeField] private float attackMaintainDistance = 4.5f;
     
     [Header("=== 속도 설정 ===")]
     [SerializeField] private float walkSpeed = 3.5f;
