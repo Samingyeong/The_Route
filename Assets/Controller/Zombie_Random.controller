@@ -679,7 +679,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: punching
+  m_Name: kicking
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -693,7 +693,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -203655887218126122, guid: 9d4395102eb1c5342b202a8cc91ee36d, type: 3}
+  m_Motion: {fileID: -203655887218126122, guid: 395574c31d1a76b40a0136848b654a15, type: 3}
   m_Tag: Attack
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -1018,7 +1018,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: scratch
+  m_Name: punching
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -1032,7 +1032,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -203655887218126122, guid: 4e0e77b224e6f5748bb72a5968cdcc0b, type: 3}
+  m_Motion: {fileID: -203655887218126122, guid: ef366557a447af44a8442a9460562db7, type: 3}
   m_Tag: Attack
   m_SpeedParameter: 
   m_MirrorParameter: 
