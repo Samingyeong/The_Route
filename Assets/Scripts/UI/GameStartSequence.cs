@@ -52,8 +52,20 @@ namespace StoreGame.UI
         private bool canStartGame = false;
         private Coroutine cameraSequenceCoroutine;
 
+        // 재시작 여부를 저장하는 static 변수
+        private static bool isRestarting = false;
+
         private void Start()
         {
+            // 재시작 중이면 시네마틱 건너뛰고 바로 게임 시작
+            if (isRestarting)
+            {
+                Debug.Log("[GameStartSequence] 재시작 감지 - 시네마틱 건너뛰고 바로 게임 시작");
+                SkipToGameStart();
+                isRestarting = false; // 플래그 리셋
+                return;
+            }
+
             // 안전 장치: 필수 레퍼런스 체크
             if (cutsceneCamera == null)
             {
@@ -133,6 +145,72 @@ namespace StoreGame.UI
             // 시퀀스 시작 (코루틴으로 카메라 이동 시작)
             sequenceStarted = true;
             cameraSequenceCoroutine = StartCoroutine(CameraSequenceCoroutine());
+        }
+
+        /// <summary>
+        /// 재시작 시 시네마틱을 건너뛰고 바로 게임 시작
+        /// </summary>
+        private void SkipToGameStart()
+        {
+            // 카메라 설정: 플레이어 카메라 활성화, 시네마틱 카메라 비활성화
+            if (cutsceneCamera != null) cutsceneCamera.enabled = false;
+            if (playerCamera != null) playerCamera.enabled = true;
+
+            // 플레이어 컨트롤 활성화
+            if (playerController != null)
+            {
+                playerController.enabled = true;
+            }
+
+            // HealthSystem 무적 해제
+            if (healthSystem == null && playerTransform != null)
+            {
+                healthSystem = playerTransform.GetComponent<StoreGame.HealthSystem>();
+            }
+            if (healthSystem != null)
+            {
+                healthSystem.SetInvincible(false);
+            }
+
+            // 체력바 표시
+            if (healthBarObject == null)
+            {
+                GameObject foundHealthBar = GameObject.Find("HealthBar") ?? GameObject.Find("SimpleHealthBar");
+                if (foundHealthBar != null)
+                {
+                    healthBarObject = foundHealthBar;
+                }
+            }
+            if (healthBarObject != null)
+            {
+                healthBarObject.SetActive(true);
+            }
+
+            // 페이드 이미지 투명하게
+            if (fadeImage != null)
+            {
+                Color c = fadeImage.color;
+                c.a = 0f;
+                fadeImage.color = c;
+            }
+
+            // 시작 UI 패널 숨기기
+            if (startGamePanel != null)
+            {
+                startGamePanel.alpha = 0f;
+                startGamePanel.interactable = false;
+                startGamePanel.blocksRaycasts = false;
+            }
+
+            Debug.Log("[GameStartSequence] 재시작 - 시네마틱 건너뛰고 바로 게임 시작됨");
+        }
+
+        /// <summary>
+        /// 재시작 플래그 설정 (DeathScreenController에서 호출)
+        /// </summary>
+        public static void SetRestartingFlag()
+        {
+            isRestarting = true;
         }
 
         /// <summary>

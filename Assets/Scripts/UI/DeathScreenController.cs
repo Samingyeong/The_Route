@@ -29,6 +29,10 @@ namespace StoreGame.UI
         [SerializeField] private string mainMenuSceneName = "MainMenu"; // 메인 메뉴 씬 이름 (없으면 비워두기)
         [SerializeField] private bool restartCurrentScene = true; // 현재 씬 재시작 여부
 
+        [Header("테스트 설정")]
+        [SerializeField] private KeyCode testDeathKey = KeyCode.K; // 테스트용 사망 키 (K 키)
+        [SerializeField] private bool enableTestKey = true; // 테스트 키 활성화 여부
+
         private bool isDeathScreenActive = false;
 
         private void Start()
@@ -77,6 +81,20 @@ namespace StoreGame.UI
             if (deathText != null && !string.IsNullOrEmpty(deathTextContent))
             {
                 deathText.text = deathTextContent;
+            }
+        }
+
+        private void Update()
+        {
+            // 테스트용 사망 키 (K 키)
+            if (enableTestKey && Input.GetKeyDown(testDeathKey))
+            {
+                if (!isDeathScreenActive && healthSystem != null)
+                {
+                    Debug.Log($"[DeathScreenController] 테스트 키({testDeathKey})로 사망 처리 시작");
+                    // HealthSystem을 통해 사망 처리 (체력을 0으로 만들어서 OnDeath 이벤트 발생)
+                    healthSystem.TakeDamage(healthSystem.CurrentHealth);
+                }
             }
         }
 
@@ -176,6 +194,9 @@ namespace StoreGame.UI
 
             if (restartCurrentScene)
             {
+                // 재시작 플래그 설정 (시네마틱 건너뛰기)
+                GameStartSequence.SetRestartingFlag();
+                
                 // 현재 씬 재시작
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
