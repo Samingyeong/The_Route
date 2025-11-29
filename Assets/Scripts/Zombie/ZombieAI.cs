@@ -24,16 +24,16 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] public float attackDamage = 10f;
     
     [Header("=== 거리 기반 상태 전환 ===")]
-    [SerializeField] private float idleDistance = 51f;
-    [SerializeField] private float walkDistance = 50f;
-    [SerializeField] private float runDistance = 20f;
-    [SerializeField] private float attackDistance = 2.5f;
+    [SerializeField] private float idleDistance = 101.0f;
+    [SerializeField] private float walkDistance = 100.0f;
+    [SerializeField] private float runDistance = 25.0f;
+    [SerializeField] private float attackDistance = 2.0f;
     [SerializeField] private float attackMaintainDistance = 3.0f;
     
     [Header("=== 속도 설정 ===")]
-    [SerializeField] private float walkSpeed = 2.5f;
-    [SerializeField] private float runSpeed = 4.5f;
-    [SerializeField] private float crawlSpeed = 3.0f;
+    [SerializeField] private float walkSpeed = 3.5f;
+    [SerializeField] private float runSpeed = 5.0f;
+    [SerializeField] private float crawlSpeed = 4.5f;
     
     [Header("=== 애니메이션 파라미터 ===")]
     [SerializeField] private string animParamIsWalking = "IsWalking";
