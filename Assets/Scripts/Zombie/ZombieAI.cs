@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using StoreGame; // HealthSystem이 있는 네임스페이스 추가
 
 public enum ZombieState
 {
@@ -18,6 +19,9 @@ public class ZombieAI : MonoBehaviour
     [SerializeField] private Transform playerTarget;
     [SerializeField] private NavMeshAgent navAgent;
     [SerializeField] private Animator animator;
+
+    [Header("=== 전투 설정 ===")]
+    [SerializeField] public float attackDamage = 10f;
     
     [Header("=== 거리 기반 상태 전환 ===")]
     [SerializeField] private float idleDistance = 51f;
@@ -100,6 +104,7 @@ public class ZombieAI : MonoBehaviour
     private AttackType lastSetAttackType = AttackType.Attack;
     private bool hasTriggeredAttack = false; // 이번 공격 사이클에서 트리거했는지
     private ZombieState lastAttackState = ZombieState.Idle; // 이전 프레임의 상태
+    private HealthSystem targetHealth;
 
     // [추가] 외부에서 좀비가 죽었는지 다쳤는지 알리기 위한 변수
     private bool isDead = false;
@@ -137,6 +142,16 @@ public class ZombieAI : MonoBehaviour
             {
                 playerTarget = playerObj.transform;
             }
+
+            if (playerTarget != null)
+            {
+                targetHealth = playerTarget.GetComponent<HealthSystem>();
+            }
+        }
+        else
+        {
+            // 이미 인스펙터에 playerTarget이 할당되어 있다면 바로 가져오기
+            targetHealth = playerTarget.GetComponent<HealthSystem>();
         }
         
         // NavMeshAgent 자동 찾기
@@ -225,6 +240,7 @@ public class ZombieAI : MonoBehaviour
             if (playerObj != null)
             {
                 playerTarget = playerObj.transform;
+                targetHealth = playerTarget.GetComponent<HealthSystem>();
             }
         }
         
@@ -256,6 +272,24 @@ public class ZombieAI : MonoBehaviour
         lastAttackState = currentState;
         
         UpdateAnimations();
+    }
+    public void OnAttackHit()
+    {
+        // 1. 타겟이나 체력 시스템이 없으면 무시
+        if (playerTarget == null || targetHealth == null) return;
+
+        // 2. 좀비가 죽었거나 피격 중이면 공격 판정 무시
+        if (isDead || isHit) return;
+
+        // 3. 거리 체크: 애니메이션이 시작됐어도 플레이어가 도망갔으면 데미지를 주지 않음
+        // attackDistance에 약간의 여유값(+0.5f)을 주어 판정
+        float currentDist = Vector3.Distance(transform.position, playerTarget.position);
+        if (currentDist <= attackDistance + 0.5f)
+        {
+            // 플레이어에게 데미지 전달
+            targetHealth.TakeDamage(attackDamage);
+            Debug.Log($"[Zombie] 플레이어 타격! 데미지: {attackDamage}");
+        }
     }
     
     void RandomizeAttack()
@@ -414,7 +448,7 @@ public class ZombieAI : MonoBehaviour
             }
         }
     }
-    
+
     void EnterState(ZombieState state)
     {
         if (navAgent == null || !navAgent.enabled || !navAgent.isOnNavMesh) return;
