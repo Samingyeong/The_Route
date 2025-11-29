@@ -18,7 +18,7 @@ public class AmmoUI : MonoBehaviour
         // GunAction이 없으면 자동으로 찾기
         if (gunAction == null)
         {
-            gunAction = FindObjectOfType<GunAction>();
+            gunAction = Object.FindFirstObjectByType<GunAction>();
         }
         
         // AmmoText가 없으면 자동으로 찾기
