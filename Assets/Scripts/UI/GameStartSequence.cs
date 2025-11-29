@@ -214,6 +214,14 @@ namespace StoreGame.UI
         }
 
         /// <summary>
+        /// 재시작 플래그 리셋 (메인 메뉴에서 게임 시작 시 호출)
+        /// </summary>
+        public static void ResetRestartingFlag()
+        {
+            isRestarting = false;
+        }
+
+        /// <summary>
         /// 카메라가 waypoint들을 순회하고 플레이어 위치로 이동하는 코루틴
         /// </summary>
         private IEnumerator CameraSequenceCoroutine()
