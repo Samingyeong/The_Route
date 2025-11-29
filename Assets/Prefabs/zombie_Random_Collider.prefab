@@ -2010,6 +2010,7 @@ MonoBehaviour:
   playerTarget: {fileID: 0}
   navAgent: {fileID: 2225725594457434891}
   animator: {fileID: 452423368266473004}
+  attackDamage: 10
   idleDistance: 25
   walkDistance: 12
   runDistance: 8
@@ -2198,7 +2199,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 4
   m_CollisionDetection: 0
