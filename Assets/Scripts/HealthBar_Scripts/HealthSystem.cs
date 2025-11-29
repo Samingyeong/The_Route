@@ -12,6 +12,9 @@ namespace StoreGame
         [SerializeField] private float maxHealth = 100f;
         [SerializeField] private float currentHealth;
 
+        [Header("무적 설정")]
+        [SerializeField] private bool isInvincible = false; // 무적 상태
+
         // 이벤트
         public event Action<float, float> OnHealthChanged; // (currentHealth, maxHealth)
         public event Action OnDeath;
@@ -22,6 +25,7 @@ namespace StoreGame
         public float CurrentHealth => currentHealth;
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
         public bool IsDead => currentHealth <= 0f;
+        public bool IsInvincible => isInvincible;
 
         void Start()
         {
@@ -36,6 +40,7 @@ namespace StoreGame
         public void TakeDamage(float damage)
         {
             if (IsDead) return;
+            if (isInvincible) return; // 무적 상태면 데미지 무시
 
             currentHealth = Mathf.Max(0f, currentHealth - damage);
             OnDamageTaken?.Invoke(damage);
@@ -94,6 +99,15 @@ namespace StoreGame
         public void RestoreFullHealth()
         {
             Heal(maxHealth - currentHealth);
+        }
+
+        /// <summary>
+        /// 무적 상태 설정
+        /// </summary>
+        public void SetInvincible(bool invincible)
+        {
+            isInvincible = invincible;
+            Debug.Log($"[HealthSystem] 무적 상태: {isInvincible}");
         }
 
         /// <summary>
