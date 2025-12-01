@@ -871,6 +871,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerExitPoint: {fileID: 7651813749092215573}
+  maxEntryDistance: 5
   keyItemName: "\uCC28 \uD0A4"
   inventoryWindowName: Inventory
 --- !u!4 &4533928478744065664 stripped

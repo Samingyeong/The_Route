@@ -51,14 +51,33 @@ public class EndingTrigger : MonoBehaviour
     {
         if (hasTriggered) return;
 
+        // 1. 직접 부딪힌 오브젝트의 태그 확인
+        if (CheckTag(other.gameObject)) return;
+
+        // 2. 부모 오브젝트의 태그 확인 (차량의 경우 부속품이 부딪힐 수 있음)
+        if (other.transform.parent != null)
+        {
+            if (CheckTag(other.transform.parent.gameObject)) return;
+        }
+
+        // 3. 최상위 부모(Root)의 태그 확인 (가장 확실한 방법)
+        if (other.transform.root != null)
+        {
+            CheckTag(other.transform.root.gameObject);
+        }
+    }
+
+    private bool CheckTag(GameObject obj)
+    {
         foreach (string tag in targetTags)
         {
-            if (other.CompareTag(tag))
+            if (obj.CompareTag(tag))
             {
                 PlayEnding();
-                break;
+                return true;
             }
         }
+        return false;
     }
 
     private void PlayEnding()
