@@ -313,7 +313,12 @@ public class ZombieAI : MonoBehaviour
     {
         isDead = true;
         // AI 기능 정지
-        if(navAgent != null) navAgent.isStopped = true;
+        // NavMesh 위에 정상적으로 올라가 있고, 에이전트가 활성일 때만 정지 호출
+        if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
+        {
+            navAgent.isStopped = true;
+            navAgent.velocity = Vector3.zero;
+        }
         enabled = false; // 이 스크립트의 Update를 멈춤
     }
 

@@ -14,6 +14,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Animator animator; 
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip stepSound;
+
+    [Header("무기 컨트롤")]
+    [SerializeField] private GunAction gunAction;      // 총 발사 제어용
+
+    [Header("UI")]
+    [SerializeField] private GameObject crosshairUI; // 화면 중앙 십자가(조준점) UI
+    [SerializeField] private GameObject ammoUI;      // 화면 총알 수 UI
     
     // ================= [Death Cam 추가 변수] =================
     [Header("죽음 연출 설정")]
@@ -32,6 +39,12 @@ public class PlayerController : MonoBehaviour
     {
         if (characterController == null) characterController = GetComponent<CharacterController>();
         if (animator == null) animator = GetComponent<Animator>(); 
+
+        // GunAction 자동 할당 시도 (없으면 인스펙터에서 직접 넣어도 됨)
+        if (gunAction == null)
+        {
+            gunAction = FindObjectOfType<GunAction>();
+        }
 
         healthSystem = GetComponent<HealthSystem>();
         if (healthSystem != null)
@@ -82,6 +95,18 @@ public class PlayerController : MonoBehaviour
 
         // 2. 무기 숨기기
         if (weaponHolder != null) weaponHolder.SetActive(false);
+
+        // 2-0. 총 발사 완전 비활성화
+        if (gunAction != null)
+        {
+            gunAction.SetGunEnabled(false);
+        }
+
+        // 2-1. 십자가(조준점) UI 숨기기
+        if (crosshairUI != null) crosshairUI.SetActive(false);
+
+        // 2-2. 총알 수 UI 숨기기
+        if (ammoUI != null) ammoUI.SetActive(false);
 
         // ================= [1인칭 시점 유지 로직] =================
         Transform cameraTransform = Camera.main.transform;

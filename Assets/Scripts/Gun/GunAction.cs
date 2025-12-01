@@ -23,6 +23,7 @@ public class GunAction : MonoBehaviour
     public bool isSniperMode = false;
 
     private float nextFireTime = 0f;
+    private bool isEnabledByGame = true; // 게임(플레이어 상태)에 의해 발사가 허용되는지 여부
 
     void Start()
     {
@@ -36,6 +37,9 @@ public class GunAction : MonoBehaviour
 
     void Update()
     {
+        // 게임 쪽에서 발사를 막았으면 입력 자체를 처리하지 않음
+        if (!isEnabledByGame) return;
+
         if (currentGun == null) return;
 
         // 1. 무기 교체
@@ -160,6 +164,23 @@ public class GunAction : MonoBehaviour
     public Gun GetCurrentGun()
     {
         return currentGun;
+    }
+
+    // 외부(플레이어 컨트롤러 등)에서 총 발사 허용/차단
+    public void SetGunEnabled(bool enabled)
+    {
+        isEnabledByGame = enabled;
+
+        // 비활성화 시 연사 사운드 등 정리
+        if (!enabled && audioSource != null && currentGun != null && audioSource.isPlaying)
+        {
+            if (audioSource.clip == currentGun.fireSound)
+            {
+                audioSource.Stop();
+                audioSource.loop = false;
+                audioSource.clip = null;
+            }
+        }
     }
 
     void Shoot()
